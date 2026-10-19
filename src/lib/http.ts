@@ -16,6 +16,7 @@ export interface FetchJsonOptions<T> {
   headers?: Record<string, string>;
   retries?: number;
   baseDelayMs?: number;
+  timeoutMs?: number;
   fetchImpl?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
 }
@@ -31,12 +32,20 @@ function retryAfterMs(res: Response): number | null {
   return Math.min(seconds * 1000, MAX_RETRY_AFTER_MS);
 }
 
+function networkError(url: string, err: unknown): Error {
+  const code = (err as { cause?: { code?: unknown } } | null)?.cause?.code;
+  const detail = typeof code === 'string' ? code : err instanceof Error ? err.message : 'unknown error';
+  // Deliberately no headers: they may carry the API token.
+  return new Error(`Network error for ${url}: ${detail}`, { cause: err });
+}
+
 export async function fetchJson<T>(url: string, opts: FetchJsonOptions<T>): Promise<T> {
   const {
     schema,
     headers,
     retries = 3,
     baseDelayMs = 500,
+    timeoutMs = 30_000,
     fetchImpl = fetch,
     sleep = defaultSleep,
   } = opts;
@@ -45,9 +54,9 @@ export async function fetchJson<T>(url: string, opts: FetchJsonOptions<T>): Prom
     const backoff = baseDelayMs * 2 ** (attempt - 1);
     let res: Response;
     try {
-      res = await fetchImpl(url, { headers });
+      res = await fetchImpl(url, { headers, signal: AbortSignal.timeout(timeoutMs) });
     } catch (err) {
-      if (attempt > retries) throw err;
+      if (attempt > retries) throw networkError(url, err);
       await sleep(backoff);
       continue;
     }

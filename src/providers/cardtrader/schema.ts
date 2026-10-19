@@ -14,8 +14,8 @@ export const CT_CONDITIONS: Record<string, Condition> = {
 };
 
 export const ctExpansionSchema = z
-  .object({ id: z.number(), game_id: z.number(), code: z.string(), name: z.string() })
-  .passthrough();
+  .object({ id: z.number(), game_id: z.number(), code: z.string().nullish(), name: z.string() })
+  .loose();
 export type CtExpansion = z.infer<typeof ctExpansionSchema>;
 
 export const ctBlueprintSchema = z
@@ -23,9 +23,9 @@ export const ctBlueprintSchema = z
     id: z.number(),
     name: z.string(),
     expansion_id: z.number(),
-    card_market_ids: z.array(z.number()).default([]),
+    card_market_ids: z.array(z.number()).nullish().transform((v) => v ?? []),
   })
-  .passthrough();
+  .loose();
 export type CtBlueprint = z.infer<typeof ctBlueprintSchema>;
 
 export const ctProductSchema = z
@@ -34,12 +34,12 @@ export const ctProductSchema = z
     blueprint_id: z.number(),
     name_en: z.string(),
     quantity: z.number(),
-    price: z.object({ cents: z.number(), currency: z.string() }).passthrough(),
+    price: z.object({ cents: z.number().int(), currency: z.string() }).loose(),
     properties_hash: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
-    user: z.object({ username: z.string(), country_code: z.string().nullable() }).passthrough(),
+    user: z.object({ username: z.string(), country_code: z.string().nullish() }).loose(),
     graded: z.boolean().nullish(),
     on_vacation: z.boolean().nullish(),
     bundle_size: z.number().nullish(),
   })
-  .passthrough();
+  .loose();
 export type CtProduct = z.infer<typeof ctProductSchema>;

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TRACKED_SETS } from '../src/config/sets';
-import { createDb } from '../src/db/client';
+import { closeDb, createDb } from '../src/db/client';
+import { describeError } from '../src/lib/errors';
 import { fetchJson } from '../src/lib/http';
 import { runIngestion } from '../src/ingest/run';
 import { createCardTraderClient } from '../src/providers/cardtrader/client';
@@ -47,13 +48,11 @@ async function main() {
       }
     }
   } finally {
-    // createDb hides the postgres client; end it through the drizzle session client.
-    const client = (db as unknown as { $client?: { end?: () => Promise<void> } }).$client;
-    await client?.end?.();
+    await closeDb(db);
   }
 }
 
 main().catch((err) => {
-  console.error('Ingestion failed:', err instanceof Error ? err.message : 'unknown error');
+  console.error('Ingestion failed:', describeError(err));
   process.exitCode = 1;
 });

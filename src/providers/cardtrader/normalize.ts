@@ -17,6 +17,11 @@ export function normalizeCtProduct(
   if ((p.bundle_size ?? 1) !== 1) return { skip: 'Sold as a bundle' };
   if (p.quantity < 1) return { skip: 'Out of stock' };
 
+  // Offers that aren't the plain product the market value describes.
+  if (p.properties_hash.sealed === false) return { skip: 'Opened product' };
+  if (p.properties_hash.altered === true) return { skip: 'Altered card' };
+  if (p.properties_hash.signed === true) return { skip: 'Signed card' };
+
   const language = p.properties_hash[CT_LANGUAGE_KEY];
   if (typeof language !== 'string') return { skip: 'Missing language' };
 
@@ -37,7 +42,7 @@ export function normalizeCtProduct(
       language: language.toLowerCase(),
       isReverseHolo: p.properties_hash[CT_REVERSE_KEY] === true,
       sellerName: p.user.username,
-      sellerCountry: p.user.country_code,
+      sellerCountry: p.user.country_code ?? null,
     },
   };
 }

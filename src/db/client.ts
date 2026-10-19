@@ -9,6 +9,12 @@ export function createDb(url: string): Db {
   return drizzle(postgres(url), { schema }) as unknown as Db;
 }
 
+/** Ends the underlying postgres connection of a Db made by createDb. */
+export async function closeDb(db: Db): Promise<void> {
+  const client = (db as unknown as { $client?: { end?: () => Promise<void> } }).$client;
+  await client?.end?.();
+}
+
 const globalForDb = globalThis as unknown as { __pokedashDb?: Db };
 
 export function getDb(): Db {

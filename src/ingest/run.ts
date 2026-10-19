@@ -1,3 +1,4 @@
+import { describeError } from '../lib/errors';
 import type { Db } from '@/db/client';
 import type { TrackedSet } from '@/config/sets';
 import type { Marketplace } from '@/domain/types';
@@ -11,7 +12,7 @@ export interface IngestionReport {
   providers: { marketplace: Marketplace; result?: Awaited<ReturnType<typeof ingestListings>>; error?: string }[];
 }
 
-const messageOf = (err: unknown) => (err instanceof Error ? err.message : 'Unknown error');
+const messageOf = describeError;
 
 export async function runIngestion(
   db: Db,

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeCtProduct } from './normalize';
+import { ctBlueprintSchema, ctExpansionSchema, ctProductSchema } from './schema';
 import { ctBlueprint, ctProduct } from '../../../test/fixtures/cardtrader';
 
 const tracked = new Set([907672, 909509, 909510, 895551]);
@@ -34,6 +35,31 @@ describe('normalizeCtProduct', () => {
     expect(normalizeCtProduct(ctProduct({ on_vacation: true }), ctBlueprint(), tracked)).toEqual({ skip: 'Seller on vacation' });
     expect(normalizeCtProduct(ctProduct({ bundle_size: 4 }), ctBlueprint(), tracked)).toEqual({ skip: 'Sold as a bundle' });
     expect(normalizeCtProduct(ctProduct({ quantity: 0 }), ctBlueprint(), tracked)).toEqual({ skip: 'Out of stock' });
+  });
+  it('skips opened, altered and signed offers but accepts sealed: true or no flag', () => {
+    const base = { condition: 'Near Mint', pokemon_language: 'en' };
+    const run = (extra: Record<string, boolean>) =>
+      normalizeCtProduct(ctProduct({ properties_hash: { ...base, ...extra } }), ctBlueprint(), tracked);
+    expect(run({ sealed: false })).toEqual({ skip: 'Opened product' });
+    expect(run({ altered: true })).toEqual({ skip: 'Altered card' });
+    expect(run({ signed: true })).toEqual({ skip: 'Signed card' });
+    expect(run({ sealed: true, altered: false, signed: false })).toHaveProperty('listing');
+    expect(run({})).toHaveProperty('listing');
+  });
+  it('tolerates a missing seller country and null card_market_ids', () => {
+    const product = ctProductSchema.parse({
+      id: 1, blueprint_id: 1001, name_en: 'Mew', quantity: 1,
+      price: { cents: 500, currency: 'EUR' },
+      properties_hash: { pokemon_language: 'en' },
+      user: { username: 'u' },
+    });
+    const bp = ctBlueprintSchema.parse({ id: 1001, name: 'Mew', expansion_id: 501, card_market_ids: null });
+    expect(bp.card_market_ids).toEqual([]);
+    expect(ctBlueprintSchema.parse({ id: 1, name: 'x', expansion_id: 1 }).card_market_ids).toEqual([]);
+    const withIds = { ...bp, card_market_ids: [909509] };
+    expect(normalizeCtProduct(product, withIds, tracked)).toMatchObject({ listing: { sellerCountry: null } });
+    expect(ctExpansionSchema.parse({ id: 1, game_id: 5, name: 'x' }).code).toBeUndefined();
+    expect(() => ctProductSchema.parse({ ...product, price: { cents: 5.5, currency: 'EUR' } })).toThrow();
   });
   it('gives sealed products without a condition a null condition', () => {
     const p = ctProduct({ properties_hash: { pokemon_language: 'de' } });

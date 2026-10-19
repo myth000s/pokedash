@@ -13,6 +13,30 @@ const setup = (...responses: Response[]) => {
 };
 
 describe('fetchJson', () => {
+  it('retries a rejected fetch and then succeeds', async () => {
+    const d = setup(res(200));
+    d.fetchImpl.mockReset();
+    d.fetchImpl.mockRejectedValueOnce(new TypeError('fetch failed')).mockResolvedValueOnce(res(200));
+    await expect(fetchJson('https://x.test/a', { schema, ...d })).resolves.toEqual({ ok: true });
+    expect(d.fetchImpl).toHaveBeenCalledTimes(2);
+  });
+  it('passes a timeout signal on every attempt', async () => {
+    const d = setup(res(200));
+    await fetchJson('https://x.test/a', { schema, ...d });
+    expect(d.fetchImpl.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+  it('wraps the final network error with the URL but never the Authorization value', async () => {
+    const cause = Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNRESET' } });
+    const fetchImpl = vi.fn<typeof fetch>().mockRejectedValue(cause);
+    const sleep = vi.fn(async (_ms: number) => {});
+    const err = await fetchJson('https://x.test/a', {
+      schema, fetchImpl, sleep, retries: 1, headers: { Authorization: 'Bearer SECRET123' },
+    }).catch((e: Error) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toBe('Network error for https://x.test/a: ECONNRESET');
+    expect((err as Error).message).not.toContain('SECRET123');
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
   it('returns the parsed body', async () => {
     const d = setup(res(200));
     await expect(fetchJson('https://x.test/a', { schema, ...d })).resolves.toEqual({ ok: true });
