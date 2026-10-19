@@ -15,7 +15,7 @@ const MARKETPLACE_DELAY_MS = 120; // keeps us under 10 requests per second
 export interface CardTraderClient {
   expansions(): Promise<CtExpansion[]>;
   blueprints(expansionId: number): Promise<CtBlueprint[]>;
-  marketplaceProducts(expansionId: number): Promise<Record<string, CtProduct[]>>;
+  marketplaceProducts(expansionId: number, language: 'en' | 'de'): Promise<Record<string, CtProduct[]>>;
 }
 
 export function createCardTraderClient(opts: {
@@ -36,10 +36,10 @@ export function createCardTraderClient(opts: {
     expansions: () => get('/expansions', z.array(ctExpansionSchema)),
     blueprints: (expansionId) =>
       get(`/blueprints/export?expansion_id=${expansionId}`, z.array(ctBlueprintSchema)),
-    marketplaceProducts: async (expansionId) => {
+    marketplaceProducts: async (expansionId, language) => {
       await sleep(MARKETPLACE_DELAY_MS);
       return get(
-        `/marketplace/products?expansion_id=${expansionId}`,
+        `/marketplace/products?expansion_id=${expansionId}&language=${language}`,
         z.record(z.string(), z.array(ctProductSchema)),
       );
     },

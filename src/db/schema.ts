@@ -10,6 +10,8 @@ export const products = pgTable('products', {
   categoryName: text('category_name').notNull(),
   cardmarketExpansionId: integer('cardmarket_expansion_id').notNull(),
   setKey: text('set_key').notNull(),
+  imageUrl: text('image_url'),
+  tcgplayerId: integer('tcgplayer_id'),
   updatedAt: ts('updated_at').notNull(),
 });
 

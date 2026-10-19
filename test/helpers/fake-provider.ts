@@ -6,7 +6,7 @@ export function fakeProvider(marketplace: Marketplace, result: NormalizedListing
     marketplace,
     async fetchListings() {
       if (result instanceof Error) throw result;
-      return { listings: result, skipped: [] };
+      return { listings: result, skipped: [], products: [] };
     },
   };
 }

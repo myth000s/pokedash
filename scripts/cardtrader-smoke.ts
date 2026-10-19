@@ -58,7 +58,7 @@ async function main() {
     const byId = new Map(blueprints.map((b) => [b.id, b]));
     const allIds = tracked ?? new Set(blueprints.flatMap((b) => b.card_market_ids));
 
-    const grouped = await client.marketplaceProducts(e.id);
+    const grouped = await client.marketplaceProducts(e.id, 'en');
     for (const list of Object.values(grouped)) {
       for (const p of list) {
         for (const [k, v] of Object.entries(p.properties_hash)) {

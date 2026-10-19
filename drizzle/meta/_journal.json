@@ -15,6 +15,13 @@
       "when": 1792442989238,
       "tag": "0001_stiff_elektra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792448023197,
+      "tag": "0002_greedy_shotgun",
+      "breakpoints": true
     }
   ]
 }
