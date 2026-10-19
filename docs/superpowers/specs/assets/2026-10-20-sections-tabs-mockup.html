@@ -1,0 +1,67 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Chakra+Petch:wght@400;500;600;700&display=swap');
+.sx { --line:rgba(255,255,255,.13); --panel:rgba(255,255,255,.06); --ink:#e9ecff; --mute:#a9b1e0; --gold:#ffd166; --mint:#06d6a0; --red:#ff8fa3;
+  font-family:'Chakra Petch',sans-serif; color:var(--ink); border-radius:14px; padding:16px 18px 20px; min-width:980px;
+  background: radial-gradient(55% 45% at 8% 0%, rgba(76,201,240,.25), transparent), radial-gradient(45% 55% at 100% 20%, rgba(177,92,255,.28), transparent), #080a17; }
+.sx-stats { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:12px; }
+.sx-stats div { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:7px 10px; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); }
+.sx-stats b { display:block; font-family:'Russo One'; font-size:17px; color:#fff; text-transform:none; letter-spacing:0; }
+.sx-tabs { display:flex; gap:6px; border-bottom:1px solid var(--line); margin:4px 0 10px; }
+.sx-tab { padding:8px 14px; font-size:13px; color:var(--mute); border-radius:10px 10px 0 0; }
+.sx-tab.on { color:#0a0c1e; background:var(--gold); font-weight:700; }
+.sx-tab .n { font-size:11px; opacity:.75; margin-left:4px; }
+.sx-tab.soon { opacity:.45; }
+.sx-tool { display:flex; gap:8px; align-items:center; margin-bottom:10px; font-size:12px; color:var(--mute); }
+.sx-chip { border:1px solid var(--line); border-radius:999px; padding:3px 10px; }
+.sx-chip.on { background:#fff; color:#0a0c1e; border-color:#fff; font-weight:600; }
+.sx-tool .r { margin-left:auto; }
+.sx-row { display:grid; grid-template-columns:44px 1fr 100px 120px 150px 90px 60px; gap:12px; align-items:center; padding:8px 10px; border-radius:10px; background:var(--panel); border:1px solid var(--line); margin-bottom:6px; font-size:13px; }
+.sx-row.hd { background:transparent; border:none; color:var(--mute); font-size:11px; text-transform:uppercase; letter-spacing:.06em; padding-bottom:2px; }
+.sx-pic { width:44px; aspect-ratio:5/7; border-radius:5px; overflow:hidden; background:linear-gradient(160deg,rgba(76,201,240,.3),rgba(177,92,255,.3),rgba(248,88,136,.3)); display:grid; place-items:center; font-family:'Russo One'; color:#fff9; }
+.sx-pic img { width:100%; height:100%; object-fit:cover; }
+.sx-name b { display:block; font-weight:600; }
+.sx-name span { color:var(--mute); font-size:11.5px; }
+.sx-num { font-family:'Russo One'; }
+.sx-us { color:var(--mute); font-size:12px; }
+.sx-us b { color:var(--ink); font-family:'Russo One'; font-weight:400; font-size:13px; }
+.sx-none { color:var(--mute); font-size:12px; }
+.sx-diff { font-family:'Russo One'; font-size:12px; border-radius:999px; padding:2px 9px; justify-self:start; }
+.sx-diff.good { background:rgba(6,214,160,.16); color:#8ff0cf; border:1px solid rgba(6,214,160,.45); }
+.sx-diff.over { background:rgba(255,143,163,.1); color:var(--red); border:1px solid rgba(255,143,163,.35); }
+.sx-deal { box-shadow:0 0 0 1px rgba(6,214,160,.6), 0 0 18px -6px rgba(6,214,160,.7); }
+.sx-note { font-size:11.5px; color:var(--mute); margin-top:8px; }
+</style>
+
+<h2>Tabs, with the US English-only reference</h2>
+<p class="subtitle">The Singles tab shown. The middle column is new: the <b>US (TCGplayer, English only)</b> market price, converted at today's ECB rate (1 € = $1.1225). Real values where we tested them (Raikou, ETB); "…" marks values we haven't fetched yet.</p>
+
+<div class="mockup">
+  <div class="mockup-header">pokedash · Singles tab</div>
+  <div class="mockup-body" style="overflow-x:auto">
+    <div class="sx">
+      <div class="sx-stats"><div>Deals now<b>5</b></div><div>Best saving<b style="color:#ffd166">€2.87</b></div><div>Listings checked<b>23,638</b></div><div>Products tracked<b>226</b></div><div>Market values<b>Today</b></div></div>
+      <div class="sx-tabs">
+        <span class="sx-tab">Deals <span class="n">5</span></span>
+        <span class="sx-tab on">Singles <span class="n">52</span></span>
+        <span class="sx-tab">Sealed <span class="n">35</span></span>
+        <span class="sx-tab soon">Slabs · soon</span>
+      </div>
+      <div class="sx-tool"><span class="sx-chip on">Worth €5+</span><span class="sx-chip">All 191</span><span class="r">Sorted by: market value</span></div>
+      <div class="sx-row hd"><span></span><span>Card</span><span>Market (Cardmarket)</span><span>US English-only</span><span>Cheapest EN/DE (Near Mint)</span><span>Difference</span><span>Offers</span></div>
+      <div class="sx-row"><div class="sx-pic"><img alt="" src="https://cardtrader.com/uploads/blueprints/image/413198/preview_413198-lugia-30th-celebration-stamp-149-147-30th-celebration(2).jpg"></div><div class="sx-name"><b>Lugia</b><span>Crystal Type · Steam Blast</span></div><span class="sx-num">€196.05</span><span class="sx-us">…</span><span class="sx-num">€230.64 <small style="color:#a9b1e0">EN · GR</small></span><span class="sx-diff over">+18%</span><span>11</span></div>
+      <div class="sx-row"><div class="sx-pic"><img alt="" src="https://cardtrader.com/uploads/blueprints/image/413201/preview_413201-charizard-30th-celebration-stamp-4-102-30th-celebration.jpg"></div><div class="sx-name"><b>Charizard</b><span>Energy Burn · Fire Spin</span></div><span class="sx-num">€174.16</span><span class="sx-us">…</span><span class="sx-num">€258.65 <small style="color:#a9b1e0">EN · US</small></span><span class="sx-diff over">+49%</span><span>2</span></div>
+      <div class="sx-row sx-deal"><div class="sx-pic"><img alt="" src="https://cardtrader.com/uploads/blueprints/image/413227/preview_413227-raikou-30th-celebration-stamp-050-185-30th-celebration.jpg"></div><div class="sx-name"><b>Raikou</b><span>Amazing Shot</span></div><span class="sx-num">€13.15</span><span class="sx-us"><b>€9.18</b> ($10.30)</span><span class="sx-num">€10.28 <small style="color:#a9b1e0">EN · PT</small></span><span class="sx-diff good">−22%</span><span>…</span></div>
+      <div class="sx-note">Click a row → opens the cheapest offer on CardTrader. Green glow = it's also a deal (≥ 20% below, high/medium confidence).</div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top:14px">
+  <div class="mockup-header">pokedash · Sealed tab (one row)</div>
+  <div class="mockup-body" style="overflow-x:auto">
+    <div class="sx">
+      <div class="sx-tool"><span class="sx-chip on">All</span><span class="sx-chip">Elite Trainer Boxes</span><span class="sx-chip">Booster Bundles &amp; Displays</span><span class="sx-chip">Boosters</span><span class="sx-chip">Collections &amp; UPCs</span><span class="sx-chip">Tins</span><span class="sx-chip">Blisters</span><span class="sx-chip">Battle Decks</span></div>
+      <div class="sx-row"><div class="sx-pic"><img alt="" src="https://cardtrader.com/uploads/blueprints/image/399230/preview_399230-30th-celebration-elite-trainer-box-30th-celebration.jpg"></div><div class="sx-name"><b>Elite Trainer Box</b><span>Elite Trainer Boxes</span></div><span class="sx-num">€132.95</span><span class="sx-us"><b>€114.80</b> ($128.86)</span><span class="sx-none">no EN/DE offer yet (should fill once we ask per language)</span><span></span><span>0</span></div>
+    </div>
+  </div>
+</div>
