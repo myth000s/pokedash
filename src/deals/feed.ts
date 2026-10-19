@@ -17,7 +17,7 @@ export interface DealView {
 
 type SnapshotRow = typeof benchmarkSnapshots.$inferSelect;
 
-function toSnapshot(row: SnapshotRow): BenchmarkSnapshot {
+export function toSnapshot(row: SnapshotRow): BenchmarkSnapshot {
   return {
     capturedAt: row.capturedAt,
     avg: row.avgCents, low: row.lowCents, trend: row.trendCents,
@@ -27,7 +27,7 @@ function toSnapshot(row: SnapshotRow): BenchmarkSnapshot {
   };
 }
 
-function emptySnapshot(capturedAt: Date): BenchmarkSnapshot {
+export function emptySnapshot(capturedAt: Date): BenchmarkSnapshot {
   return {
     capturedAt,
     avg: null, low: null, trend: null, avg1: null, avg7: null, avg30: null,
