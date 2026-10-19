@@ -29,7 +29,9 @@ export function createCardTraderProvider(client: CardTraderClient): ListingProvi
           for (const products of Object.values(byBlueprint)) {
             for (const product of products) {
               const r = normalizeCtProduct(product, blueprints.get(product.blueprint_id), trackedCardmarketIds);
-              if ('listing' in r) result.listings.push(r.listing);
+              if ('listing' in r && r.listing.language !== language) {
+                result.skipped.push({ externalId: String(product.id), reason: 'Unexpected language' });
+              } else if ('listing' in r) result.listings.push(r.listing);
               else result.skipped.push({ externalId: String(product.id), reason: r.skip });
             }
           }

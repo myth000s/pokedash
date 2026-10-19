@@ -13,7 +13,7 @@ export interface PptClient {
   sealedQuote(tcgPlayerId: number): Promise<PptQuote>;
 }
 
-const cardEntry = z.object({ prices: z.object({ market: z.number().nullish() }).loose().nullish() }).loose();
+const cardEntry = z.object({ tcgPlayerId: z.union([z.string(), z.number()]).nullish(), prices: z.object({ market: z.number().nullish() }).loose().nullish() }).loose();
 const cardSchema = z.object({ data: z.union([cardEntry, z.array(cardEntry)]) }).loose();
 const sealedEntry = z.object({ tcgPlayerId: z.union([z.string(), z.number()]).nullish(), unopenedPrice: z.number().nullish() }).loose();
 const sealedSchema = z.object({ data: z.union([sealedEntry, z.array(sealedEntry)]) }).loose();
@@ -48,12 +48,13 @@ export function createPptClient(opts: {
   };
   return {
     async cardQuote(id) {
-      const { data, headers } = await get(`/cards?tcgPlayerId=${id}`, cardSchema);
-      const entry = Array.isArray(data.data) ? data.data[0] : data.data;
+      const { data, headers } = await get(`/cards?tcgPlayerId=${id}&limit=1`, cardSchema);
+      const entries = Array.isArray(data.data) ? data.data : [data.data];
+      const entry = entries.find((e) => e.tcgPlayerId != null && String(e.tcgPlayerId) === String(id));
       return { usdCents: toCents(entry?.prices?.market), dailyRemaining: remaining(headers) };
     },
     async sealedQuote(id) {
-      const { data, headers } = await get(`/sealed-products?tcgPlayerId=${id}`, sealedSchema);
+      const { data, headers } = await get(`/sealed-products?tcgPlayerId=${id}&limit=1`, sealedSchema);
       const entries = Array.isArray(data.data) ? data.data : [data.data];
       const entry = entries.find((e) => e.tcgPlayerId != null && String(e.tcgPlayerId) === String(id));
       return { usdCents: toCents(entry?.unopenedPrice), dailyRemaining: remaining(headers) };

@@ -34,6 +34,14 @@ describe('CardTrader provider', () => {
     expect(r.products.map((p) => p.cardmarketProductId)).toEqual([909509, 909510]);
     expect(r.skipped).toEqual([{ externalId: '778', reason: 'Graded card' }]);
   });
+  it('skips an offer whose language is not the one requested', async () => {
+    const client = fakeClient();
+    client.marketplaceProducts = vi.fn(async (id: number, language: 'en' | 'de') =>
+      id === 501 && language === 'en' ? { '1001': [ctProduct({ id: 801, properties_hash: { condition: 'Near Mint', pokemon_language: 'it' } })] } : {});
+    const r = await createCardTraderProvider(client).fetchListings(SET, new Set([909509]));
+    expect(r.listings).toEqual([]);
+    expect(r.skipped).toEqual([{ externalId: '801', reason: 'Unexpected language' }]);
+  });
   it('fails when no expansion matches the set', async () => {
     const client = { ...fakeClient(), expansions: vi.fn(async () => []) };
     await expect(createCardTraderProvider(client).fetchListings(SET, new Set()))

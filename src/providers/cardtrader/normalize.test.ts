@@ -49,15 +49,19 @@ describe('normalizeCtProduct', () => {
     expect(normalizeCtProduct(ctProduct({ bundle_size: 4 }), ctBlueprint(), tracked)).toEqual({ skip: 'Sold as a bundle' });
     expect(normalizeCtProduct(ctProduct({ quantity: 0 }), ctBlueprint(), tracked)).toEqual({ skip: 'Out of stock' });
   });
-  it('skips opened, altered and signed offers but accepts sealed: true or no flag', () => {
+  it('skips altered and signed offers', () => {
     const base = { condition: 'Near Mint', pokemon_language: 'en' };
     const run = (extra: Record<string, boolean>) =>
       normalizeCtProduct(ctProduct({ properties_hash: { ...base, ...extra } }), ctBlueprint(), tracked);
-    expect(run({ sealed: false })).toEqual({ skip: 'Opened product' });
     expect(run({ altered: true })).toEqual({ skip: 'Altered card' });
     expect(run({ signed: true })).toEqual({ skip: 'Signed card' });
-    expect(run({ sealed: true, altered: false, signed: false })).toHaveProperty('listing');
-    expect(run({})).toHaveProperty('listing');
+    expect(run({ altered: false, signed: false })).toHaveProperty('listing');
+  });
+  it("keeps sealed products whatever CardTrader's sealed flag says", () => {
+    for (const sealed of [false, true]) {
+      const r = normalizeCtProduct(ctProduct({ properties_hash: { condition: 'Near Mint', pokemon_language: 'en', sealed } }), ctBlueprint(), tracked);
+      expect(r).toHaveProperty('listing');
+    }
   });
   it('tolerates a missing seller country and null card_market_ids', () => {
     const product = ctProductSchema.parse({
