@@ -27,6 +27,7 @@ async function etbId(): Promise<number> {
   return p.id;
 }
 async function addUs(usdCents: number | null, capturedAt: Date) {
+  await db.update(products).set({ tcgplayerId: 704143 }).where(eq(products.id, await etbId()));
   await db.insert(usReferencePrices).values({
     productId: await etbId(), capturedAt, capturedDay: capturedAt.toISOString().slice(0, 10), usdCents,
   });
@@ -75,6 +76,29 @@ describe('sections', () => {
     const mew = (await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW }))[0];
     expect(mew.offer).toMatchObject({ priceCents: 250000 });
     expect(mew.offerCount).toBe(1);
+  });
+  it('skips reverse-holo offers when picking the singles offer', async () => {
+    await seed(
+      { externalId: 'r1', cardmarketProductId: 909509, condition: 'near_mint', isReverseHolo: true, priceCents: 200000, language: 'en' },
+      { externalId: 'n1', cardmarketProductId: 909509, condition: 'near_mint', isReverseHolo: false, priceCents: 250000, language: 'en' },
+    );
+    const mew = (await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW }))[0];
+    expect(mew.offer).toMatchObject({ priceCents: 250000 });
+    expect(mew.offerCount).toBe(2);
+  });
+  it('ignores unavailable offers', async () => {
+    await seed({ externalId: 'a', priceCents: 5000, language: 'en' }, { externalId: 'b', priceCents: 9900, language: 'en' });
+    // a later run no longer lists 'a', so it is marked unavailable
+    await ingestListings(db, fakeProvider('cardtrader', [makeListing({ externalId: 'b', priceCents: 9900, language: 'en' })]), SET, new Date(NOW.getTime() + 60_000));
+    const etb = (await sealed()).find((r) => r.productName === '30th Celebration Elite Trainer Box')!;
+    expect(etb.offer).toMatchObject({ priceCents: 9900 });
+    expect(etb.offerCount).toBe(1);
+  });
+  it('hides the US price for a product without a TCGplayer id', async () => {
+    await db.insert(fxRates).values({ rateDate: '2026-10-19', usdPerEur: 1.1225 });
+    await addUs(12886, NOW);
+    await db.update(products).set({ tcgplayerId: null }).where(eq(products.id, await etbId()));
+    expect((await sealed())[0].us).toBeNull();
   });
   it('converts the US price with the newest rate', async () => {
     await db.insert(fxRates).values({ rateDate: '2026-10-19', usdPerEur: 1.1225 });

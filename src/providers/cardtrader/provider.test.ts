@@ -36,7 +36,7 @@ describe('CardTrader provider', () => {
   });
   it('skips an offer whose language is not the one requested', async () => {
     const client = fakeClient();
-    client.marketplaceProducts = vi.fn(async (id: number, language: 'en' | 'de') =>
+    client.marketplaceProducts = vi.fn(async (id: number, language: 'en' | 'de'): Promise<Record<string, CtProduct[]>> =>
       id === 501 && language === 'en' ? { '1001': [ctProduct({ id: 801, properties_hash: { condition: 'Near Mint', pokemon_language: 'it' } })] } : {});
     const r = await createCardTraderProvider(client).fetchListings(SET, new Set([909509]));
     expect(r.listings).toEqual([]);

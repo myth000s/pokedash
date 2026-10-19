@@ -1,4 +1,4 @@
-import { desc, eq, inArray, max } from 'drizzle-orm';
+import { and, desc, eq, inArray, max } from 'drizzle-orm';
 import { benchmarkSnapshots, listings, products } from '@/db/schema';
 import type { Db } from '@/db/client';
 import { DEFAULT_DEAL_SETTINGS, type DealSettings } from '@/config/settings';
@@ -52,7 +52,7 @@ export async function getDealFeed(
     .select({ listing: listings, product: products })
     .from(listings)
     .innerJoin(products, eq(listings.productId, products.id))
-    .where(eq(listings.available, true));
+    .where(and(eq(listings.available, true), inArray(listings.language, ['en', 'de'])));
   if (rows.length === 0) return [];
 
   // Latest snapshot per product = greatest capturedAt, not the most recently inserted row.

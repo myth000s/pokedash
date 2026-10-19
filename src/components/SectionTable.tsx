@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { SEALED_TYPES, type SealedType, type SectionRow } from '@/deals/sections';
-import { formatEuro, formatPct } from '@/lib/format';
+import { formatEuro, formatPct, formatUsd } from '@/lib/format';
 import { splitProductName } from '@/lib/names';
 import { CardImage } from './CardImage';
 
@@ -87,7 +87,7 @@ function Row({ row, section }: { row: SectionRow; section: 'singles' | 'sealed' 
           {row.us ? (
             <span className="text-xs text-mute">
               <b className="font-display text-[13px] font-normal text-ink">{formatEuro(row.us.eurCents)}</b>{' '}
-              <span>{`($${(row.us.usdCents / 100).toFixed(2)})`}</span>
+              <span>{`(${formatUsd(row.us.usdCents)})`}</span>
             </span>
           ) : <span className="text-mute">–</span>}
         </Cell>
@@ -107,7 +107,7 @@ function Row({ row, section }: { row: SectionRow; section: 'singles' | 'sealed' 
   return (
     <li>
       {offer ? (
-    <a href={offer.url} target="_blank" rel="noopener noreferrer" aria-label={`View ${title} on CardTrader`} aria-describedby={`section-row-${row.productId}`} className={`${classes} hover:border-white/30`}>{cells}</a>
+    <a href={offer.url} target="_blank" rel="noopener noreferrer" aria-label={`View ${row.productName} on CardTrader`} aria-describedby={`section-row-${row.productId}`} className={`${classes} hover:border-white/30`}>{cells}</a>
       ) : (
     <div className={classes}>{cells}</div>
       )}

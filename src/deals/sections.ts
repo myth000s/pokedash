@@ -106,7 +106,9 @@ export async function getSectionRows(
     const benchmark = assess(false);
 
     const candidates = byProduct.get(p.id) ?? [];
-    const cheapest = candidates.reduce<(typeof candidates)[number] | null>(
+    // The market value shown for singles is the non-holo trend, so compare like with like.
+    const comparable = kind === 'single' ? candidates.filter((l) => !l.isReverseHolo) : candidates;
+    const cheapest = comparable.reduce<(typeof candidates)[number] | null>(
       (best, l) => (!best || l.priceCents < best.priceCents || (l.priceCents === best.priceCents && l.id < best.id) ? l : best),
       null,
     );
@@ -130,7 +132,7 @@ export async function getSectionRows(
     }
 
     const usRow = usByProduct.get(p.id);
-    const us = usRow && usRow.usdCents !== null && fxFresh
+    const us = p.tcgplayerId !== null && usRow && usRow.usdCents !== null && fxFresh
       && opts.now.getTime() - usRow.capturedAt.getTime() <= MAX_US_AGE_MS
       ? { usdCents: usRow.usdCents, eurCents: Math.round(usRow.usdCents / fx.usdPerEur) }
       : null;

@@ -28,6 +28,10 @@ describe('SectionTable', () => {
     // "Elite Trainer Boxes" is also a toolbar chip, so look for the subline inside the row
     expect(within(link).getByText('Elite Trainer Boxes')).toBeInTheDocument();
   });
+  it('names each row link with the full product name', () => {
+    render(<SectionTable section="singles" rows={[row({ productName: 'Mew [Psychic | 30C]', kind: 'single', sealedType: null })]} allSingles={false} sealedType={null} />);
+    expect(screen.getByRole('link', { name: 'View Mew [Psychic | 30C] on CardTrader' })).toBeInTheDocument();
+  });
   it('shows a product without an offer', () => {
     render(<SectionTable section="sealed" rows={[row({ offer: null, offerCount: 0, us: null })]} allSingles={false} sealedType={null} />);
     expect(screen.getByText('no EN/DE offer yet')).toBeInTheDocument();
