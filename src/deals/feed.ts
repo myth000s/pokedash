@@ -35,6 +35,13 @@ function emptySnapshot(capturedAt: Date): BenchmarkSnapshot {
   };
 }
 
+function byDescNullsLast(a: number | null, b: number | null): number {
+  if (a === b) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return b - a;
+}
+
 export async function getDealFeed(
   db: Db,
   opts: { now: Date; settings?: DealSettings; includeNonDeals?: boolean },
@@ -82,16 +89,10 @@ export async function getDealFeed(
 
   return views
     .filter((v) => opts.includeNonDeals || v.score.isDeal)
-    .sort((a, b) => {
-      const pa = a.score.discountPct;
-      const pb = b.score.discountPct;
-      if (pa !== pb) {
-        if (pa === null) return 1;
-        if (pb === null) return -1;
-        return pb - pa;
-      }
-      return b.lastSeenAt.getTime() - a.lastSeenAt.getTime();
-    });
+    .sort((a, b) =>
+      byDescNullsLast(a.score.discountCents, b.score.discountCents)
+      || byDescNullsLast(a.score.discountPct, b.score.discountPct)
+      || b.lastSeenAt.getTime() - a.lastSeenAt.getTime());
 }
 
 export async function getLastCheckedAt(db: Db): Promise<Date | null> {
