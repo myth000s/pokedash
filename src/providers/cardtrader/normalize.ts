@@ -31,7 +31,7 @@ export function normalizeCtProduct(
   if (p.quantity < 1) return { skip: 'Out of stock' };
 
   // Offers that aren't the plain product the market value describes.
-  if (p.properties_hash.sealed === false) return { skip: 'Opened product' };
+  // (CardTrader's `sealed` flag is constant per category, so it says nothing about the offer.)
   if (p.properties_hash.altered === true) return { skip: 'Altered card' };
   if (p.properties_hash.signed === true) return { skip: 'Signed card' };
 

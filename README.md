@@ -26,6 +26,8 @@ Paste the token only into `.env.local` (git-ignored). Never put it in `.env.exam
 
 Run `npm run ingest` whenever you want fresh data. Without `CARDTRADER_TOKEN` it loads Cardmarket values only and skips CardTrader.
 
+**US reference prices.** Get a free key at pokemonpricetracker.com and put it in `.env.local` as `POKEMONPRICETRACKER_API_KEY`. `npm run ingest` then fetches US English reference prices for sealed products and singles worth €5+, at most once per product per day. That uses about 87 of the free tier's 100 credits/day, and it stops early when credits run low. Without the key it skips US prices.
+
 ## Other commands
 
 ```bash

@@ -1,4 +1,4 @@
-import { desc, eq, inArray, max } from 'drizzle-orm';
+import { and, desc, eq, inArray, max } from 'drizzle-orm';
 import { benchmarkSnapshots, listings, products } from '@/db/schema';
 import type { Db } from '@/db/client';
 import { DEFAULT_DEAL_SETTINGS, type DealSettings } from '@/config/settings';
@@ -17,7 +17,7 @@ export interface DealView {
 
 type SnapshotRow = typeof benchmarkSnapshots.$inferSelect;
 
-function toSnapshot(row: SnapshotRow): BenchmarkSnapshot {
+export function toSnapshot(row: SnapshotRow): BenchmarkSnapshot {
   return {
     capturedAt: row.capturedAt,
     avg: row.avgCents, low: row.lowCents, trend: row.trendCents,
@@ -27,7 +27,7 @@ function toSnapshot(row: SnapshotRow): BenchmarkSnapshot {
   };
 }
 
-function emptySnapshot(capturedAt: Date): BenchmarkSnapshot {
+export function emptySnapshot(capturedAt: Date): BenchmarkSnapshot {
   return {
     capturedAt,
     avg: null, low: null, trend: null, avg1: null, avg7: null, avg30: null,
@@ -35,7 +35,7 @@ function emptySnapshot(capturedAt: Date): BenchmarkSnapshot {
   };
 }
 
-function byDescNullsLast(a: number | null, b: number | null): number {
+export function byDescNullsLast(a: number | null, b: number | null): number {
   if (a === b) return 0;
   if (a === null) return 1;
   if (b === null) return -1;
@@ -52,7 +52,7 @@ export async function getDealFeed(
     .select({ listing: listings, product: products })
     .from(listings)
     .innerJoin(products, eq(listings.productId, products.id))
-    .where(eq(listings.available, true));
+    .where(and(eq(listings.available, true), inArray(listings.language, ['en', 'de'])));
   if (rows.length === 0) return [];
 
   // Latest snapshot per product = greatest capturedAt, not the most recently inserted row.

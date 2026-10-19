@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { ingestListings } from './listings';
 import { ingestCardmarket } from './cardmarket';
-import { listings, listingPriceHistory } from '@/db/schema';
+import { listings, listingPriceHistory, products } from '@/db/schema';
 import { THIRTIETH_CELEBRATION as SET } from '@/config/sets';
 import type { Db } from '@/db/client';
 import { createTestDb } from '../../test/helpers/db';
@@ -19,6 +19,21 @@ beforeEach(async () => {
 });
 
 describe('ingestListings', () => {
+  it('stores product pictures and TCGplayer ids from the provider', async () => {
+    const provider = { marketplace: 'cardtrader' as const, fetchListings: async () => ({
+      listings: [], skipped: [], products: [{ cardmarketProductId: 895551, imageUrl: 'https://cardtrader.com/etb.jpg', tcgplayerId: 704143 }] }) };
+    await ingestListings(db, provider, SET, T1);
+    const [etb] = await db.select().from(products).where(eq(products.cardmarketId, 895551));
+    expect(etb).toMatchObject({ imageUrl: 'https://cardtrader.com/etb.jpg', tcgplayerId: 704143 });
+  });
+  it('clears product metadata when the provider reports null', async () => {
+    const meta = (imageUrl: string | null, tcgplayerId: number | null) => ({ marketplace: 'cardtrader' as const, fetchListings: async () => ({
+      listings: [], skipped: [], products: [{ cardmarketProductId: 895551, imageUrl, tcgplayerId }] }) });
+    await ingestListings(db, meta('https://cardtrader.com/etb.jpg', 704143), SET, T1);
+    await ingestListings(db, meta(null, null), SET, T2);
+    const [etb] = await db.select().from(products).where(eq(products.cardmarketId, 895551));
+    expect(etb).toMatchObject({ imageUrl: null, tcgplayerId: null });
+  });
   it('stores and updates the picture link', async () => {
     await ingestListings(db, fakeProvider('cardtrader', [makeListing()]), SET, T1);
     expect((await db.select().from(listings))[0].imageUrl).toBeNull();

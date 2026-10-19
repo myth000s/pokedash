@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
-import { fetchJson, HttpError } from './http';
+import { fetchJson, fetchJsonWithHeaders, fetchText, HttpError } from './http';
 
 const res = (status: number, body: unknown = { ok: true }, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers });
@@ -71,5 +71,16 @@ describe('fetchJson', () => {
     const d = setup(res(401));
     const err = await fetchJson('https://x.test/a', { schema, headers: { Authorization: 'Bearer secret-token' }, ...d }).catch((e) => e);
     expect(String(err.message)).not.toContain('secret-token');
+  });
+  it('returns headers with the parsed body', async () => {
+    const d = setup(res(200, { ok: true }, { 'X-RateLimit-Daily-Remaining': '42' }));
+    const r = await fetchJsonWithHeaders('https://x.test/a', { schema, ...d });
+    expect(r.data).toEqual({ ok: true });
+    expect(r.headers.get('X-RateLimit-Daily-Remaining')).toBe('42');
+  });
+  it('fetches text with the same retries', async () => {
+    const d = setup(new Response('x', { status: 503 }), new Response('<xml/>', { status: 200 }));
+    await expect(fetchText('https://x.test/a', d)).resolves.toBe('<xml/>');
+    expect(d.fetchImpl).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,5 +1,11 @@
 const euro = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' });
 
+const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+export function formatUsd(cents: number): string {
+  return usd.format(cents / 100);
+}
+
 export function formatEuro(cents: number): string {
   return euro.format(cents / 100);
 }

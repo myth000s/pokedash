@@ -24,6 +24,7 @@ export const ctBlueprintSchema = z
     name: z.string(),
     expansion_id: z.number(),
     image_url: z.string().nullish(),
+    tcg_player_id: z.number().nullish(),
     card_market_ids: z.array(z.number()).nullish().transform((v) => v ?? []),
   })
   .loose();

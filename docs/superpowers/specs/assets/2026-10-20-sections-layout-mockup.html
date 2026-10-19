@@ -1,0 +1,89 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Chakra+Petch:wght@400;500;600;700&display=swap');
+.sx { --line:rgba(255,255,255,.13); --panel:rgba(255,255,255,.06); --ink:#e9ecff; --mute:#a9b1e0; --gold:#ffd166; --mint:#06d6a0; --red:#ff8fa3;
+  font-family:'Chakra Petch',sans-serif; color:var(--ink); border-radius:14px; padding:16px 18px 20px; min-width:960px;
+  background: radial-gradient(55% 45% at 8% 0%, rgba(76,201,240,.25), transparent), radial-gradient(45% 55% at 100% 20%, rgba(177,92,255,.28), transparent), #080a17; }
+.sx h5 { font-family:'Russo One',sans-serif; font-weight:400; font-size:16px; margin:18px 0 8px; display:flex; align-items:baseline; gap:10px; }
+.sx h5 small { font-family:'Chakra Petch'; font-size:12px; color:var(--mute); }
+.sx-tabs { display:flex; gap:6px; border-bottom:1px solid var(--line); margin:4px 0 10px; }
+.sx-tab { padding:8px 14px; font-size:13px; color:var(--mute); border-radius:10px 10px 0 0; }
+.sx-tab.on { color:#0a0c1e; background:var(--gold); font-weight:700; }
+.sx-tab .n { font-size:11px; opacity:.75; margin-left:4px; }
+.sx-tab.soon { opacity:.5; }
+.sx-sub { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.sx-chip { font-size:12px; border:1px solid var(--line); border-radius:999px; padding:3px 10px; color:var(--mute); }
+.sx-chip.on { background:#fff; color:#0a0c1e; border-color:#fff; font-weight:600; }
+.sx-row { display:grid; grid-template-columns:44px 1fr 110px 130px 100px 70px; gap:12px; align-items:center; padding:8px 10px; border-radius:10px; background:var(--panel); border:1px solid var(--line); margin-bottom:6px; font-size:13px; }
+.sx-row.hd { background:transparent; border:none; color:var(--mute); font-size:11px; text-transform:uppercase; letter-spacing:.06em; padding-bottom:2px; }
+.sx-pic { width:44px; aspect-ratio:5/7; border-radius:5px; overflow:hidden; background:linear-gradient(160deg,rgba(76,201,240,.3),rgba(177,92,255,.3),rgba(248,88,136,.3)); display:grid; place-items:center; font-family:'Russo One'; color:#fff9; }
+.sx-pic img { width:100%; height:100%; object-fit:cover; }
+.sx-name b { display:block; font-weight:600; }
+.sx-name span { color:var(--mute); font-size:11.5px; }
+.sx-num { font-family:'Russo One'; }
+.sx-none { color:var(--mute); font-size:12px; }
+.sx-diff { font-family:'Russo One'; font-size:12px; border-radius:999px; padding:2px 9px; justify-self:start; }
+.sx-diff.good { background:rgba(6,214,160,.16); color:#8ff0cf; border:1px solid rgba(6,214,160,.45); }
+.sx-diff.over { background:rgba(255,143,163,.1); color:var(--red); border:1px solid rgba(255,143,163,.35); }
+.sx-deal { box-shadow:0 0 0 1px rgba(6,214,160,.6), 0 0 18px -6px rgba(6,214,160,.7); }
+.sx-cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.sx-more { font-size:12px; color:var(--gold); margin-top:4px; }
+</style>
+
+<h2>How should the sections be arranged?</h2>
+<p class="subtitle">Real data from tonight: each product with its <b>cheapest English/German offer</b> next to its market value (green = below, red = above). The deals stay on top of the page as today. Empty rows ("no EN/DE offer yet") should fill up once we ask CardTrader per language.</p>
+
+<div class="mockup">
+  <div class="mockup-header">A · Tabs: one section at a time (Deals · Singles · Sealed · Slabs)</div>
+  <div class="mockup-body" style="overflow-x:auto">
+    <div class="sx">
+      <div class="sx-tabs">
+        <span class="sx-tab">Deals <span class="n">5</span></span>
+        <span class="sx-tab">Singles <span class="n">52</span></span>
+        <span class="sx-tab on">Sealed <span class="n">35</span></span>
+        <span class="sx-tab soon">Slabs · soon</span>
+      </div>
+      <div class="sx-sub">
+        <span class="sx-chip on">All</span><span class="sx-chip">Elite Trainer Boxes</span><span class="sx-chip">Booster Bundles &amp; Displays</span><span class="sx-chip">Boosters</span><span class="sx-chip">Collections &amp; UPCs</span><span class="sx-chip">Tins</span><span class="sx-chip">Blisters</span><span class="sx-chip">Battle Decks</span>
+      </div>
+      <div class="sx-row hd"><span></span><span>Product</span><span>Market value</span><span>Cheapest EN/DE</span><span>Difference</span><span>Offers</span></div>
+      <div class="sx-row"><div class="sx-pic"><img alt="" src="https://cardtrader.com/uploads/blueprints/image/399230/preview_399230-30th-celebration-elite-trainer-box-30th-celebration.jpg"></div><div class="sx-name"><b>Elite Trainer Box</b><span>Elite Trainer Boxes</span></div><span class="sx-num">€132.95</span><span class="sx-none">no EN/DE offer yet</span><span></span><span>0</span></div>
+      <div class="sx-row"><div class="sx-pic"><img alt="" src="https://cardtrader.com/uploads/blueprints/image/399248/preview_399248-30th-celebration-booster-bundle-30th-celebration.jpg"></div><div class="sx-name"><b>Booster Bundle</b><span>Booster Bundles &amp; Displays</span></div><span class="sx-num">€70.75</span><span class="sx-none">no EN/DE offer yet</span><span></span><span>0</span></div>
+      <div class="sx-row"><div class="sx-pic"><img alt="" src="https://cardtrader.com/uploads/blueprints/image/399238/preview_399238-30th-celebration-umbreon-ultra-premium-collection-30th-celebration.jpg"></div><div class="sx-name"><b>Umbreon ex Ultra-Premium Collection</b><span>Collections &amp; UPCs</span></div><span class="sx-num">€535.82</span><span class="sx-num">€579.64 <small style="color:#a9b1e0">EN · FI</small></span><span class="sx-diff over">+8%</span><span>3</span></div>
+      <div class="sx-row sx-deal"><div class="sx-pic">C</div><div class="sx-name"><b>Classic Collection Booster</b><span>Boosters</span></div><span class="sx-num">€149.99</span><span class="sx-num">€129.64 <small style="color:#a9b1e0">EN · FI</small></span><span class="sx-diff good">−14%</span><span>1</span></div>
+      <div class="sx-row"><div class="sx-pic">B</div><div class="sx-name"><b>Binder Collection</b><span>Collections &amp; UPCs</span></div><span class="sx-num">€75.69</span><span class="sx-num">€68.12 <small style="color:#a9b1e0">EN · GR</small></span><span class="sx-diff good">−10%</span><span>12</span></div>
+      <div class="sx-row"><div class="sx-pic">E</div><div class="sx-name"><b>Eevee 2-Pack Blister</b><span>Blisters</span></div><span class="sx-num">€29.67</span><span class="sx-num">€26.39 <small style="color:#a9b1e0">EN · ES</small></span><span class="sx-diff good">−11%</span><span>17</span></div>
+      <div class="sx-more">… 29 more sealed products</div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top:18px">
+  <div class="mockup-header">B · One long page: Deals, then Singles, then Sealed (grouped by type), each showing its top rows with "show all"</div>
+  <div class="mockup-body" style="overflow-x:auto">
+    <div class="sx">
+      <h5>Best deals <small>5 · as today (hero + tiles)</small></h5>
+      <div class="sx-row hd" style="display:block;color:#a9b1e0">[ hero + deal tiles, unchanged ]</div>
+      <div class="sx-cols">
+        <div>
+          <h5>Singles <small>52 worth €5+ · sorted by market value</small></h5>
+          <div class="sx-row" style="grid-template-columns:44px 1fr 90px 80px"><div class="sx-pic"><img alt="" src="https://cardtrader.com/uploads/blueprints/image/413198/preview_413198-lugia-30th-celebration-stamp-149-147-30th-celebration(2).jpg"></div><div class="sx-name"><b>Lugia</b><span>market €196.05 · 11 offers</span></div><span class="sx-num">€230.64</span><span class="sx-diff over">+18%</span></div>
+          <div class="sx-row" style="grid-template-columns:44px 1fr 90px 80px"><div class="sx-pic"><img alt="" src="https://cardtrader.com/uploads/blueprints/image/413201/preview_413201-charizard-30th-celebration-stamp-4-102-30th-celebration.jpg"></div><div class="sx-name"><b>Charizard</b><span>market €174.16 · 2 offers</span></div><span class="sx-num">€258.65</span><span class="sx-diff over">+49%</span></div>
+          <div class="sx-row" style="grid-template-columns:44px 1fr 90px 80px"><div class="sx-pic"><img alt="" src="https://cardtrader.com/uploads/blueprints/image/406813/preview_406813-mew-ex-special-illustration-rare-152-128-30th-celebration.jpg"></div><div class="sx-name"><b>Mew ex</b><span>market €80.76 · 14 offers</span></div><span class="sx-num">€119.20</span><span class="sx-diff over">+48%</span></div>
+          <div class="sx-more">Show all singles →</div>
+        </div>
+        <div>
+          <h5>Sealed <small>35 · grouped by type</small></h5>
+          <div class="sx-row" style="grid-template-columns:44px 1fr 90px 80px"><div class="sx-pic"><img alt="" src="https://cardtrader.com/uploads/blueprints/image/399230/preview_399230-30th-celebration-elite-trainer-box-30th-celebration.jpg"></div><div class="sx-name"><b>Elite Trainer Box</b><span>market €132.95 · 0 EN/DE offers</span></div><span class="sx-none">—</span><span></span></div>
+          <div class="sx-row sx-deal" style="grid-template-columns:44px 1fr 90px 80px"><div class="sx-pic">C</div><div class="sx-name"><b>Classic Collection Booster</b><span>market €149.99 · 1 offer</span></div><span class="sx-num">€129.64</span><span class="sx-diff good">−14%</span></div>
+          <div class="sx-row" style="grid-template-columns:44px 1fr 90px 80px"><div class="sx-pic">B</div><div class="sx-name"><b>Binder Collection</b><span>market €75.69 · 12 offers</span></div><span class="sx-num">€68.12</span><span class="sx-diff good">−10%</span></div>
+          <div class="sx-more">Show all sealed →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="tabs" onclick="toggleSelect(this)"><div class="letter">A</div><div class="content"><h3>Tabs</h3><p>One section at a time, full table with sub-filters (e.g. only ETBs). Clean and roomy.</p></div></div>
+  <div class="option" data-choice="long-page" onclick="toggleSelect(this)"><div class="letter">B</div><div class="content"><h3>One long page</h3><p>Everything at a glance, each section shows its top rows with "show all".</p></div></div>
+</div>

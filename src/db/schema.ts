@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { boolean, date, doublePrecision, integer, pgTable, serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -10,6 +10,8 @@ export const products = pgTable('products', {
   categoryName: text('category_name').notNull(),
   cardmarketExpansionId: integer('cardmarket_expansion_id').notNull(),
   setKey: text('set_key').notNull(),
+  imageUrl: text('image_url'),
+  tcgplayerId: integer('tcgplayer_id'),
   updatedAt: ts('updated_at').notNull(),
 });
 
@@ -68,3 +70,20 @@ export const listingPriceHistory = pgTable('listing_price_history', {
   shippingCents: integer('shipping_cents'),
   observedAt: ts('observed_at').notNull(),
 });
+
+export const fxRates = pgTable('fx_rates', {
+  rateDate: date('rate_date', { mode: 'string' }).primaryKey(),
+  usdPerEur: doublePrecision('usd_per_eur').notNull(),
+});
+
+export const usReferencePrices = pgTable(
+  'us_reference_prices',
+  {
+    id: serial('id').primaryKey(),
+    productId: integer('product_id').notNull().references(() => products.id),
+    capturedAt: ts('captured_at').notNull(),
+    capturedDay: date('captured_day', { mode: 'string' }).notNull(),
+    usdCents: integer('usd_cents'), // null: asked that day, no price
+  },
+  (t) => [unique('us_reference_prices_product_day_uq').on(t.productId, t.capturedDay)],
+);

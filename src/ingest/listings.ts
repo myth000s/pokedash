@@ -47,6 +47,11 @@ export async function ingestListings(
   for (const s of result.skipped) skip(s.reason);
 
   return db.transaction(async (tx) => {
+    for (const m of result.products) {
+      const productId = productIdByCardmarketId.get(m.cardmarketProductId);
+      if (productId === undefined) continue;
+      await tx.update(products).set({ imageUrl: m.imageUrl, tcgplayerId: m.tcgplayerId }).where(eq(products.id, productId));
+    }
     let upserted = 0;
     for (const l of result.listings) {
       const productId = productIdByCardmarketId.get(l.cardmarketProductId);

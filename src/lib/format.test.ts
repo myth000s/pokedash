@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatEuro, formatPct, formatAge, formatCount, formatFreshness } from './format';
+import { formatUsd, formatEuro, formatPct, formatAge, formatCount, formatFreshness } from './format';
 
 const now = new Date('2026-10-19T12:00:00Z');
 const ago = (ms: number) => new Date(now.getTime() - ms);
@@ -7,6 +7,10 @@ describe('format', () => {
   it('formats euros', () => {
     expect(formatEuro(10499)).toBe('€104.99');
     expect(formatEuro(316053)).toBe('€3,160.53');
+  });
+  it('formats US dollars', () => {
+    expect(formatUsd(324964)).toBe('$3,249.64');
+    expect(formatUsd(12886)).toBe('$128.86');
   });
   it('formats percentages', () => expect(formatPct(0.2554)).toBe('26%'));
   it('formats ages', () => {
