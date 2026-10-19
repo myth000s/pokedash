@@ -4,7 +4,7 @@ import type { Db } from '@/db/client';
 import { DEFAULT_DEAL_SETTINGS, type DealSettings } from '@/config/settings';
 import { assessBenchmark } from '@/scoring/benchmark';
 import { markStaleListing, scoreListing } from '@/scoring/score';
-import { emptySnapshot, toSnapshot } from '@/deals/feed';
+import { byDescNullsLast, emptySnapshot, toSnapshot } from '@/deals/feed';
 import type { BenchmarkAssessment, Condition, ProductKind, ScoredListing } from '@/domain/types';
 
 export type SealedType = 'etb' | 'bundles-displays' | 'boosters' | 'collections' | 'tins' | 'blisters' | 'battle-decks' | 'other';
@@ -26,6 +26,25 @@ export function sealedTypeOf(categoryName: string): SealedType {
 
 export const SINGLES_MIN_VALUE_CENTS = 500;
 
+type SnapshotRow = typeof benchmarkSnapshots.$inferSelect;
+
+function marketValueOf(snapshot: SnapshotRow | undefined, kind: ProductKind, now: Date, settings: DealSettings): number | null {
+  return assessBenchmark(snapshot ? toSnapshot(snapshot) : emptySnapshot(now), {
+    kind, reverseHolo: false, now, maxAgeHours: settings.maxBenchmarkAgeHours,
+  }).valueCents;
+}
+
+async function latestSnapshots(db: Db, ids: number[]): Promise<Map<number, SnapshotRow>> {
+  const rows = await db
+    .selectDistinctOn([benchmarkSnapshots.productId])
+    .from(benchmarkSnapshots)
+    .where(inArray(benchmarkSnapshots.productId, ids))
+    .orderBy(benchmarkSnapshots.productId, desc(benchmarkSnapshots.capturedAt));
+  return new Map(rows.map((s) => [s.productId, s]));
+}
+
+const isWorthListing = (valueCents: number | null) => (valueCents ?? 0) >= SINGLES_MIN_VALUE_CENTS;
+
 const MAX_US_AGE_MS = 7 * 24 * 3_600_000;
 
 export interface SectionOffer {
@@ -40,13 +59,6 @@ export interface SectionRow {
   offerCount: number;
 }
 
-function byDescNullsLast(a: number | null, b: number | null): number {
-  if (a === b) return 0;
-  if (a === null) return 1;
-  if (b === null) return -1;
-  return b - a;
-}
-
 export async function getSectionRows(
   db: Db,
   opts: { section: 'singles' | 'sealed'; setKey: string; now: Date; settings?: DealSettings; allSingles?: boolean; sealedType?: SealedType },
@@ -59,13 +71,7 @@ export async function getSectionRows(
   if (prods.length === 0) return [];
   const ids = prods.map((p) => p.id);
 
-  // Latest snapshot per product = greatest capturedAt, not the most recently inserted row.
-  const snapshotRows = await db
-    .selectDistinctOn([benchmarkSnapshots.productId])
-    .from(benchmarkSnapshots)
-    .where(inArray(benchmarkSnapshots.productId, ids))
-    .orderBy(benchmarkSnapshots.productId, desc(benchmarkSnapshots.capturedAt));
-  const snapshots = new Map(snapshotRows.map((s) => [s.productId, s]));
+  const snapshots = await latestSnapshots(db, ids);
 
   const listingRows = await db.select().from(listings).where(and(
     inArray(listings.productId, ids),
@@ -138,7 +144,7 @@ export async function getSectionRows(
 
   if (opts.section === 'singles') {
     return rows
-      .filter((r) => opts.allSingles || (r.benchmark.valueCents ?? 0) >= SINGLES_MIN_VALUE_CENTS)
+      .filter((r) => opts.allSingles || isWorthListing(r.benchmark.valueCents))
       .sort((a, b) => byDescNullsLast(a.benchmark.valueCents, b.benchmark.valueCents) || a.productName.localeCompare(b.productName));
   }
   const typeIndex = (t: SealedType | null) => SEALED_TYPES.findIndex((x) => x.key === t);
@@ -150,10 +156,14 @@ export async function getSectionRows(
       || a.productName.localeCompare(b.productName));
 }
 
-export async function getSectionCounts(db: Db, setKey: string): Promise<{ singles: number; sealed: number }> {
-  const [singles, sealed] = await Promise.all([
-    getSectionRows(db, { section: 'singles', setKey, now: new Date() }),
-    db.select({ id: products.id }).from(products).where(and(eq(products.setKey, setKey), eq(products.kind, 'sealed'))),
-  ]);
-  return { singles: singles.length, sealed: sealed.length };
+export async function getSectionCounts(
+  db: Db, setKey: string, now: Date = new Date(),
+): Promise<{ singles: number; sealed: number }> {
+  const prods = await db.select({ id: products.id, kind: products.kind }).from(products).where(eq(products.setKey, setKey));
+  const singleIds = prods.filter((p) => p.kind === 'single').map((p) => p.id);
+  const snapshots = singleIds.length ? await latestSnapshots(db, singleIds) : new Map<number, SnapshotRow>();
+  return {
+    singles: singleIds.filter((id) => isWorthListing(marketValueOf(snapshots.get(id), 'single', now, DEFAULT_DEAL_SETTINGS))).length,
+    sealed: prods.filter((p) => p.kind === 'sealed').length,
+  };
 }

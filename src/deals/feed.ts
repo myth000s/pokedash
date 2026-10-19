@@ -35,7 +35,7 @@ export function emptySnapshot(capturedAt: Date): BenchmarkSnapshot {
   };
 }
 
-function byDescNullsLast(a: number | null, b: number | null): number {
+export function byDescNullsLast(a: number | null, b: number | null): number {
   if (a === b) return 0;
   if (a === null) return 1;
   if (b === null) return -1;

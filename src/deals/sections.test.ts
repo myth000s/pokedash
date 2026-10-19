@@ -98,6 +98,11 @@ describe('sections', () => {
     expect((await sealed())[0].us).toEqual({ usdCents: 12886, eurCents: 11480 });
   });
   it('counts singles worth €5+ and all sealed', async () => {
-    expect(await getSectionCounts(db, SET.key)).toEqual({ singles: 2, sealed: 3 });
+    expect(await getSectionCounts(db, SET.key, NOW)).toEqual({ singles: 2, sealed: 3 });
+  });
+  it('getSectionCounts matches the singles rows', async () => {
+    await seed({ externalId: 's2', cardmarketProductId: 909509, condition: 'near_mint', priceCents: 250000, language: 'en' });
+    const rows = await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW });
+    expect((await getSectionCounts(db, SET.key, NOW)).singles).toBe(rows.length);
   });
 });
