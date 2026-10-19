@@ -51,12 +51,11 @@ export async function getDealFeed(
   // Latest snapshot per product = greatest capturedAt, not the most recently inserted row.
   const productIds = [...new Set(rows.map((r) => r.product.id))];
   const snapshotRows = await db
-    .select()
+    .selectDistinctOn([benchmarkSnapshots.productId])
     .from(benchmarkSnapshots)
     .where(inArray(benchmarkSnapshots.productId, productIds))
-    .orderBy(desc(benchmarkSnapshots.capturedAt));
-  const latest = new Map<number, SnapshotRow>();
-  for (const s of snapshotRows) if (!latest.has(s.productId)) latest.set(s.productId, s);
+    .orderBy(benchmarkSnapshots.productId, desc(benchmarkSnapshots.capturedAt));
+  const latest = new Map(snapshotRows.map((s) => [s.productId, s]));
 
   const views: DealView[] = rows.map(({ listing: l, product: p }) => {
     const snap = latest.get(p.id);

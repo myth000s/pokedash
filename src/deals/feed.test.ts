@@ -3,6 +3,7 @@ import { getDealFeed, getLastCheckedAt } from './feed';
 import { ingestCardmarket } from '@/ingest/cardmarket';
 import { ingestListings } from '@/ingest/listings';
 import { THIRTIETH_CELEBRATION as SET } from '@/config/sets';
+import { listings, products } from '@/db/schema';
 import type { Db } from '@/db/client';
 import { createTestDb } from '../../test/helpers/db';
 import { cardmarketFetch } from '../../test/helpers/cardmarket';
@@ -54,6 +55,19 @@ describe('getDealFeed', () => {
     await seed({}, { externalId: 'ct-ko', cardmarketProductId: 895559, title: 'Knock Out', priceCents: 2500 });
     const feed = await getDealFeed(db, { now: NOW });
     expect(feed.map((d) => d.productName)).toEqual(['30th Celebration: Knock Out Collection', '30th Celebration Elite Trainer Box']);
+  });
+  it('marks a product without a snapshot as insufficient', async () => {
+    const [p] = await db.insert(products).values({
+      cardmarketId: 1, name: 'No Data Box', kind: 'sealed', categoryName: 'Boxes',
+      cardmarketExpansionId: 6601, setKey: 'test', updatedAt: NOW,
+    }).returning();
+    await db.insert(listings).values({
+      marketplace: 'cardtrader', externalId: 'nodata', productId: p.id, title: 'x', url: 'https://x',
+      priceCents: 1000, currency: 'EUR', language: 'en', firstSeenAt: NOW, lastSeenAt: NOW,
+    });
+    const [deal] = await getDealFeed(db, { now: NOW, includeNonDeals: true });
+    expect(deal.benchmark.confidence).toBe('insufficient');
+    expect(deal.score.notDealReasons).toEqual(['Not enough sales data']);
   });
   it('reports when listings were last checked', async () => {
     expect(await getLastCheckedAt(db)).toBeNull();
