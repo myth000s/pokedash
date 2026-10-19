@@ -26,8 +26,8 @@ describe('slice 1, end to end', () => {
     expect(report.providers[0]).toMatchObject({ marketplace: 'cardtrader', result: { upserted: 1 } });
     render(<DealFeed deals={await getDealFeed(db, { now: NOW })} now={NOW} lastCheckedAt={NOW} />);
     expect(screen.getByRole('heading', { name: '30th Celebration Elite Trainer Box' })).toBeInTheDocument();
-    expect(screen.getByText('€33.95 below market (26%)')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'View listing' })).toHaveAttribute('href', 'https://www.cardtrader.com/cards/3003');
+    expect(screen.getByText('€33.95 · −26%')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View on CardTrader' })).toHaveAttribute('href', 'https://www.cardtrader.com/cards/3003');
   });
   it('keeps going when one provider fails', async () => {
     const db = await createTestDb();
