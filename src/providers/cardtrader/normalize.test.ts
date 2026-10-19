@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeCtProduct } from './normalize';
+import { normalizeCtProduct, safeCardTraderImageUrl } from './normalize';
 import { ctBlueprintSchema, ctExpansionSchema, ctProductSchema } from './schema';
 import { ctBlueprint, ctProduct } from '../../../test/fixtures/cardtrader';
 
@@ -11,7 +11,20 @@ describe('normalizeCtProduct', () => {
       marketplace: 'cardtrader', externalId: '777', cardmarketProductId: 909509, title: 'Mew',
       url: 'https://www.cardtrader.com/cards/1001', priceCents: 200000, currency: 'EUR', shippingCents: null,
       condition: 'near_mint', language: 'en', isReverseHolo: false, sellerName: 'seller1', sellerCountry: 'DE',
+      imageUrl: null,
     } });
+  });
+  it('keeps CardTrader picture links and uses null when there is none', () => {
+    const ok = 'https://cardtrader.com/uploads/blueprints/image/413227/preview_413227-raikou.jpg';
+    expect(normalizeCtProduct(ctProduct(), ctBlueprint({ image_url: ok }), tracked)).toMatchObject({ listing: { imageUrl: ok } });
+    expect(normalizeCtProduct(ctProduct(), ctBlueprint(), tracked)).toMatchObject({ listing: { imageUrl: null } });
+  });
+  it('rejects unsafe picture links', () => {
+    for (const bad of ['http://cardtrader.com/x.jpg', 'https://evil.example/x.jpg', 'javascript:alert(1)',
+      'https://cardtrader.com.evil.example/x.jpg', 'not a url', '', 42, null, undefined]) {
+      expect(safeCardTraderImageUrl(bad)).toBeNull();
+    }
+    expect(safeCardTraderImageUrl('https://www.cardtrader.com/uploads/a.jpg')).toBe('https://www.cardtrader.com/uploads/a.jpg');
   });
   it('picks the right product when names collide', () => {
     const r = normalizeCtProduct(ctProduct(), ctBlueprint({ card_market_ids: [909510] }), tracked);

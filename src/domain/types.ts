@@ -22,6 +22,7 @@ export interface NormalizedListing {
   title: string; url: string; priceCents: number; currency: string;
   shippingCents: number | null; condition: Condition | null; language: string | null;
   isReverseHolo: boolean; sellerName: string | null; sellerCountry: string | null;
+  imageUrl: string | null;
 }
 
 export interface ScoredListing {

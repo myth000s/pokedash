@@ -10,7 +10,7 @@ import type {
 
 export interface DealView {
   listingId: number; productName: string; kind: ProductKind; marketplace: Marketplace; url: string;
-  condition: Condition | null; language: string | null; isReverseHolo: boolean; sellerCountry: string | null;
+  condition: Condition | null; language: string | null; isReverseHolo: boolean; sellerCountry: string | null; imageUrl: string | null;
   priceCents: number; shippingCents: number | null; currency: string; lastSeenAt: Date;
   benchmark: BenchmarkAssessment; score: ScoredListing;
 }
@@ -74,7 +74,7 @@ export async function getDealFeed(
     );
     return {
       listingId: l.id, productName: p.name, kind, marketplace: l.marketplace as Marketplace, url: l.url,
-      condition, language: l.language, isReverseHolo: l.isReverseHolo, sellerCountry: l.sellerCountry,
+      condition, language: l.language, isReverseHolo: l.isReverseHolo, sellerCountry: l.sellerCountry, imageUrl: l.imageUrl,
       priceCents: l.priceCents, shippingCents: l.shippingCents, currency: l.currency, lastSeenAt: l.lastSeenAt,
       benchmark, score,
     };

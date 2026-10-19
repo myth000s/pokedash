@@ -21,6 +21,10 @@ const seed = (...ls: Parameters<typeof makeListing>[0][]) =>
   ingestListings(db, fakeProvider('cardtrader', ls.map((l) => makeListing(l))), SET, NOW);
 
 describe('getDealFeed', () => {
+  it('passes the picture link through', async () => {
+    await seed({ imageUrl: 'https://www.cardtrader.com/uploads/etb.jpg' });
+    expect((await getDealFeed(db, { now: NOW }))[0].imageUrl).toBe('https://www.cardtrader.com/uploads/etb.jpg');
+  });
   it('returns a scored deal with market value and discount', async () => {
     await seed({});
     const [deal] = await getDealFeed(db, { now: NOW });

@@ -66,6 +66,7 @@ export async function ingestListings(
         isReverseHolo: l.isReverseHolo,
         sellerName: l.sellerName,
         sellerCountry: l.sellerCountry,
+        imageUrl: l.imageUrl,
         available: true,
         lastSeenAt: now,
       };

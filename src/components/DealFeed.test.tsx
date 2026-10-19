@@ -7,7 +7,7 @@ import type { DealView } from '@/deals/feed';
 const NOW = new Date('2026-10-19T12:00:00Z');
 const deal = (over: Partial<DealView> = {}): DealView => ({
   listingId: 1, productName: '30th Celebration Elite Trainer Box', kind: 'sealed', marketplace: 'cardtrader',
-  url: 'https://www.cardtrader.com/cards/1001', condition: null, language: 'de', isReverseHolo: false, sellerCountry: 'DE',
+  url: 'https://www.cardtrader.com/cards/1001', condition: null, language: 'de', isReverseHolo: false, sellerCountry: 'DE', imageUrl: null,
   priceCents: 9900, shippingCents: null, currency: 'EUR', lastSeenAt: NOW,
   benchmark: { valueCents: 13295, basis: 'trend', confidence: 'high', reasons: [], capturedAt: new Date('2026-10-19T00:42:46Z') },
   score: { deliveredCents: 9900, shippingKnown: false, discountCents: 3395, discountPct: 0.2554, isDeal: true, warnings: ['Shipping not included'], notDealReasons: [] },
