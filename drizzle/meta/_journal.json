@@ -36,6 +36,13 @@
       "when": 1792448349340,
       "tag": "0004_eminent_mentor",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792448518705,
+      "tag": "0005_outgoing_rogue",
+      "breakpoints": true
     }
   ]
 }

@@ -65,7 +65,7 @@ async function main() {
           process.exitCode = 1;
         } else {
           const u = r.usPrices;
-          console.log(`  US prices: ${u.fetched} fetched, ${u.alreadyToday} already today, ${u.noPrice} without price${u.stoppedEarly ? ' — stopped early (daily credits low)' : ''}`);
+          console.log(`  US prices: ${u.fetched} fetched, ${u.alreadyToday} already today, ${u.noPrice} without price${u.failed > 0 ? `, ${u.failed} failed` : ''}${u.stoppedEarly ? ' — stopped early (daily credits low)' : ''}`);
         }
       }
     }

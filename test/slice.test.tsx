@@ -41,13 +41,13 @@ describe('slice 1, end to end', () => {
       expect.objectContaining({ marketplace: 'cardtrader', result: expect.objectContaining({ upserted: 1 }) }),
     ]);
   });
-  it('records a US price failure without losing the Cardmarket results', async () => {
+  it('stops US prices on a provider outage without losing the Cardmarket results', async () => {
     const db = await createTestDb();
     await ingestCardmarket(db, { fetchJson: cardmarketFetch() }, SET);
     await db.update(products).set({ tcgplayerId: 704143 }).where(eq(products.cardmarketId, 895551));
     const ppt = { cardQuote: vi.fn(async () => { throw new Error('PPT down'); }), sealedQuote: vi.fn(async () => { throw new Error('PPT down'); }) };
     const [report] = await runIngestion(db, { fetchJson: cardmarketFetch(), providers: [], ppt }, [SET], NOW);
-    expect(report.usPrices).toEqual({ error: 'PPT down' });
+    expect(report.usPrices).toEqual({ fetched: 0, alreadyToday: 0, noPrice: 0, failed: 0, stoppedEarly: true });
     expect(report.cardmarket).toMatchObject({ products: 7 });
   });
 });

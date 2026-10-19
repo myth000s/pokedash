@@ -1,0 +1,1 @@
+ALTER TABLE "us_reference_prices" ALTER COLUMN "usd_cents" DROP NOT NULL;

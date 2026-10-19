@@ -83,7 +83,7 @@ export const usReferencePrices = pgTable(
     productId: integer('product_id').notNull().references(() => products.id),
     capturedAt: ts('captured_at').notNull(),
     capturedDay: date('captured_day', { mode: 'string' }).notNull(),
-    usdCents: integer('usd_cents').notNull(),
+    usdCents: integer('usd_cents'), // null: asked that day, no price
   },
   (t) => [unique('us_reference_prices_product_day_uq').on(t.productId, t.capturedDay)],
 );
