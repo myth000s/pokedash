@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { boolean, date, doublePrecision, integer, pgTable, serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -69,4 +69,9 @@ export const listingPriceHistory = pgTable('listing_price_history', {
   priceCents: integer('price_cents').notNull(),
   shippingCents: integer('shipping_cents'),
   observedAt: ts('observed_at').notNull(),
+});
+
+export const fxRates = pgTable('fx_rates', {
+  rateDate: date('rate_date', { mode: 'string' }).primaryKey(),
+  usdPerEur: doublePrecision('usd_per_eur').notNull(),
 });

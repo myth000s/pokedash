@@ -39,9 +39,10 @@ function networkError(url: string, err: unknown): Error {
   return new Error(`Network error for ${url}: ${detail}`, { cause: err });
 }
 
-export async function fetchJson<T>(url: string, opts: FetchJsonOptions<T>): Promise<T> {
+type RequestOptions = Omit<FetchJsonOptions<unknown>, 'schema'>;
+
+async function request(url: string, opts: RequestOptions): Promise<Response> {
   const {
-    schema,
     headers,
     retries = 3,
     baseDelayMs = 500,
@@ -60,9 +61,25 @@ export async function fetchJson<T>(url: string, opts: FetchJsonOptions<T>): Prom
       await sleep(backoff);
       continue;
     }
-    if (res.ok) return schema.parse(await res.json());
+    if (res.ok) return res;
     const failure = new HttpError(res.status, url);
     if ((res.status !== 429 && res.status < 500) || attempt > retries) throw failure;
     await sleep(retryAfterMs(res) ?? backoff);
   }
+}
+
+export async function fetchJsonWithHeaders<T>(
+  url: string,
+  opts: FetchJsonOptions<T>,
+): Promise<{ data: T; headers: Headers }> {
+  const res = await request(url, opts);
+  return { data: opts.schema.parse(await res.json()), headers: res.headers };
+}
+
+export async function fetchJson<T>(url: string, opts: FetchJsonOptions<T>): Promise<T> {
+  return (await fetchJsonWithHeaders(url, opts)).data;
+}
+
+export async function fetchText(url: string, opts: Omit<FetchJsonOptions<unknown>, 'schema'>): Promise<string> {
+  return (await request(url, opts)).text();
 }
