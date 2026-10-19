@@ -76,7 +76,7 @@ Confidence starts at **high** and can only go down:
 | A cross-check value is missing (singles: `avg7` or `avg30`; sealed: `avg`) | at most **medium**: "Few recent sales" |
 | A cross-check value differs from the trend by more than 25% | at most **medium**: "Recent sales vary from the trend" |
 | A cross-check value differs from the trend by more than 50% | **low**: "Recent sales differ a lot from the trend" |
-| Price data older than 48 hours | one step down: "Price data is N days old" |
+| Price data older than 72 hours (3 days) | **low**: "Price data is N days old", so it never produces a deal |
 
 ### 5.2 Listing price
 
@@ -92,10 +92,11 @@ A listing is a deal only if **all** of these hold. Otherwise it gets the reasons
 4. Language is English or German ("Language fr is not on your list" / "Language unknown").
 5. Singles only: condition is Mint or Near Mint ("Condition below Near Mint" / "Condition unknown").
 6. Total price is at least 20% below market value ("Only 13% below market value (needs 20%)" / "Priced above market value").
+7. The listing was seen in the last 3 days ("Listing not seen for N days"). A listing that hasn't been seen for longer may already be sold.
 
 Discounts of 60% or more are still deals, but they get the warning "Unusually cheap: check the listing carefully". These can be fakes, proxies or mismatches.
 
-Defaults (they become per-user settings with watchlists in slice 3): minimum discount 20%, minimum market value €5, maximum price-data age 48 h, suspicious discount 60%, languages en/de, deal conditions Mint/Near Mint.
+Defaults (they become per-user settings with watchlists in slice 3): minimum discount 20%, minimum market value €5, maximum price-data age 72 h, maximum listing age 72 h, suspicious discount 60%, languages en/de, deal conditions Mint/Near Mint.
 
 ## 6. User experience (MVP)
 
@@ -153,12 +154,13 @@ Then: more sets.
 
 ## 11. Who decided what
 
-**The owner decided:** collector focus and the "not a reseller" stance; 30th Celebration first, more sets later; notifications with email; private for the owner plus up to three friends; respect each site's rules and use only documented sources; Cardmarket for market value, CardTrader and eBay for listings, Kleinanzeigen left out; English and German only; Next.js, TypeScript, Tailwind, PostgreSQL, Supabase; provider interface, background jobs, deduplication, validation, protected credentials, rate-limit handling; TDD and code review; one vertical slice first; the MVP feature list in section 6.
+**The owner decided:** collector focus and the "not a reseller" stance; 30th Celebration first, more sets later; notifications with email; private for the owner plus up to three friends; respect each site's rules and use only documented sources; Cardmarket for market value, CardTrader and eBay for listings, Kleinanzeigen left out; English and German only; Next.js, TypeScript, Tailwind, PostgreSQL, Supabase; provider interface, background jobs, deduplication, validation, protected credentials, rate-limit handling; TDD and code review; one vertical slice first; the MVP feature list in section 6; a deal needs at least 20% below market value (confirmed 2026-10-19; may be lowered later); market values older than 3 days never produce deals (2026-10-19).
 
 **Claude's calls, to be checked:**
 
 - CardTrader is the first listing source because it gives exact Cardmarket IDs. eBay comes second.
-- The deal thresholds in section 5 (20% minimum discount, €5 minimum value, 48 h, 60% suspicious, Mint/Near Mint only). The owner hasn't said yet how big a discount should trigger an alert.
+- The other deal thresholds in section 5 (€5 minimum value, 60% suspicious, Mint/Near Mint only).
+- Listings not seen for more than 3 days don't count as deals. This extends the owner's 3-day rule from market values to listings.
 - The confidence rules in section 5.1.
 - An offer whose language is missing is skipped, never assumed to be English.
 - Coins and complete-set products are excluded.

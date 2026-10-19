@@ -3,7 +3,7 @@ import { benchmarkSnapshots, listings, products } from '@/db/schema';
 import type { Db } from '@/db/client';
 import { DEFAULT_DEAL_SETTINGS, type DealSettings } from '@/config/settings';
 import { assessBenchmark } from '@/scoring/benchmark';
-import { scoreListing } from '@/scoring/score';
+import { markStaleListing, scoreListing } from '@/scoring/score';
 import type {
   BenchmarkAssessment, BenchmarkSnapshot, Condition, Marketplace, ProductKind, ScoredListing,
 } from '@/domain/types';
@@ -64,10 +64,13 @@ export async function getDealFeed(
       kind, reverseHolo: l.isReverseHolo, now: opts.now, maxAgeHours: settings.maxBenchmarkAgeHours,
     });
     const condition = l.condition as Condition | null;
-    const score = scoreListing(
-      { priceCents: l.priceCents, shippingCents: l.shippingCents, currency: l.currency, condition, language: l.language, kind },
-      benchmark,
-      settings,
+    const score = markStaleListing(
+      scoreListing(
+        { priceCents: l.priceCents, shippingCents: l.shippingCents, currency: l.currency, condition, language: l.language, kind },
+        benchmark,
+        settings,
+      ),
+      l.lastSeenAt, opts.now, settings.maxListingAgeHours,
     );
     return {
       listingId: l.id, productName: p.name, kind, marketplace: l.marketplace as Marketplace, url: l.url,

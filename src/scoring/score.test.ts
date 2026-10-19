@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scoreListing, type ScoreInput } from './score';
+import { markStaleListing, scoreListing, type ScoreInput } from './score';
 import { DEFAULT_DEAL_SETTINGS as S } from '@/config/settings';
 import type { BenchmarkAssessment, Confidence } from '@/domain/types';
 
@@ -59,5 +59,22 @@ describe('scoreListing', () => {
     expect(scoreListing({ ...etb, currency: 'USD' }, bm(13295), S)).toMatchObject({
       discountCents: null, discountPct: null, isDeal: false, notDealReasons: ['Price is not in EUR'],
     });
+  });
+});
+
+describe('markStaleListing', () => {
+  const now = new Date('2026-10-19T12:00:00Z');
+  const seenHoursAgo = (h: number) => new Date(now.getTime() - h * 3_600_000);
+  it('removes the deal flag from a listing not seen for more than 3 days', () => {
+    const deal = scoreListing(etb, bm(13295), S);
+    const s = markStaleListing(deal, seenHoursAgo(80), now, S.maxListingAgeHours);
+    expect(s.isDeal).toBe(false);
+    expect(s.notDealReasons.at(-1)).toBe('Listing not seen for 3 days');
+  });
+  it('leaves a listing seen within 3 days unchanged', () => {
+    const deal = scoreListing(etb, bm(13295), S);
+    const s = markStaleListing(deal, seenHoursAgo(70), now, S.maxListingAgeHours);
+    expect(s).toEqual(deal);
+    expect(s.isDeal).toBe(true);
   });
 });

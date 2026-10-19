@@ -69,6 +69,14 @@ describe('getDealFeed', () => {
     expect(deal.benchmark.confidence).toBe('insufficient');
     expect(deal.score.notDealReasons).toEqual(['Not enough sales data']);
   });
+  it('does not offer a listing that was last seen more than 3 days ago as a deal', async () => {
+    await seed({});
+    const later = new Date(NOW.getTime() + 80 * 3_600_000);
+    expect(await getDealFeed(db, { now: later })).toEqual([]);
+    const [all] = await getDealFeed(db, { now: later, includeNonDeals: true });
+    expect(all.score.isDeal).toBe(false);
+    expect(all.score.notDealReasons).toContain('Listing not seen for 3 days');
+  });
   it('reports when listings were last checked', async () => {
     expect(await getLastCheckedAt(db)).toBeNull();
     await seed({});

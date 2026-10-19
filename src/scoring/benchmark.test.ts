@@ -8,7 +8,7 @@ const snap = (over: Partial<BenchmarkSnapshot>): BenchmarkSnapshot => ({
   capturedAt: FRESH, avg: null, low: null, trend: null, avg1: null, avg7: null, avg30: null,
   avgHolo: null, lowHolo: null, trendHolo: null, avg1Holo: null, avg7Holo: null, avg30Holo: null, ...over,
 });
-const single = { kind: 'single' as const, reverseHolo: false, now: NOW, maxAgeHours: 48 };
+const single = { kind: 'single' as const, reverseHolo: false, now: NOW, maxAgeHours: 72 };
 const sealed = { ...single, kind: 'sealed' as const };
 
 describe('assessBenchmark', () => {
@@ -47,11 +47,21 @@ describe('assessBenchmark', () => {
     );
     expect(a).toMatchObject({ valueCents: 49, basis: 'trend_holo', confidence: 'medium' });
   });
-  it('steps confidence down when price data is old', () => {
-    const old = new Date(NOW.getTime() - 72 * 3_600_000);
+  it('treats price data older than 3 days as unreliable', () => {
+    const old = new Date(NOW.getTime() - 80 * 3_600_000);
     const a = assessBenchmark(snap({ capturedAt: old, trend: 316053, avg7: 306574, avg30: 299938 }), single);
-    expect(a.confidence).toBe('medium');
+    expect(a.confidence).toBe('low');
     expect(a.reasons).toEqual(['Price data is 3 days old']);
+  });
+  it('keeps price data up to 3 days old', () => {
+    const recent = new Date(NOW.getTime() - 70 * 3_600_000);
+    const a = assessBenchmark(snap({ capturedAt: recent, trend: 316053, avg7: 306574, avg30: 299938 }), single);
+    expect(a.confidence).toBe('high');
+    expect(a.reasons).toEqual([]);
+  });
+  it('missing trend stays insufficient even when old', () => {
+    const old = new Date(NOW.getTime() - 80 * 3_600_000);
+    expect(assessBenchmark(snap({ capturedAt: old, avg: 15045 }), sealed).confidence).toBe('insufficient');
   });
   it('never uses the lowest asking price', () => {
     const a = assessBenchmark(snap({ trend: 13295, avg: 15045, low: 8990 }), sealed);

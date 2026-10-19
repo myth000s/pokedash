@@ -8,9 +8,6 @@ const MS_PER_HOUR = 3_600_000;
 const capAt = (level: Confidence, max: Confidence): Confidence =>
   ORDER.indexOf(level) > ORDER.indexOf(max) ? max : level;
 
-const stepDown = (level: Confidence): Confidence =>
-  ORDER[Math.max(0, ORDER.indexOf(level) - 1)];
-
 export function assessBenchmark(
   snapshot: BenchmarkSnapshot,
   opts: { kind: ProductKind; reverseHolo: boolean; now: Date; maxAgeHours: number },
@@ -52,7 +49,7 @@ export function assessBenchmark(
 
   const ageHours = (opts.now.getTime() - capturedAt.getTime()) / MS_PER_HOUR;
   if (ageHours > opts.maxAgeHours) {
-    level = stepDown(level);
+    level = 'low';
     reasons.push(`Price data is ${Math.floor(ageHours / 24)} days old`);
   }
 

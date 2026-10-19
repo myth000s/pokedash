@@ -5,6 +5,8 @@ export type ScoreInput = Pick<NormalizedListing, 'priceCents' | 'shippingCents' 
   kind: ProductKind;
 };
 
+const MS_PER_HOUR = 3_600_000;
+
 export function scoreListing(input: ScoreInput, benchmark: BenchmarkAssessment, settings: DealSettings): ScoredListing {
   const shippingKnown = input.shippingCents !== null;
   const deliveredCents = input.priceCents + (input.shippingCents ?? 0);
@@ -51,5 +53,17 @@ export function scoreListing(input: ScoreInput, benchmark: BenchmarkAssessment, 
   return {
     deliveredCents, shippingKnown, discountCents, discountPct,
     isDeal: notDealReasons.length === 0, warnings, notDealReasons,
+  };
+}
+
+export function markStaleListing(
+  score: ScoredListing, lastSeenAt: Date, now: Date, maxAgeHours: number,
+): ScoredListing {
+  const ageHours = (now.getTime() - lastSeenAt.getTime()) / MS_PER_HOUR;
+  if (ageHours <= maxAgeHours) return score;
+  return {
+    ...score,
+    isDeal: false,
+    notDealReasons: [...score.notDealReasons, `Listing not seen for ${Math.floor(ageHours / 24)} days`],
   };
 }
