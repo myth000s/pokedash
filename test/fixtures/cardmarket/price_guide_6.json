@@ -1,0 +1,12 @@
+{"version":1,"createdAt":"2026-10-19T02:42:46+0200","priceGuides":[
+{"idProduct":907607,"idCategory":51,"avg":0.1,"low":0.02,"trend":0.05,"avg1":0.05,"avg7":0.06,"avg30":0.08,"avg-holo":null,"low-holo":null,"trend-holo":0,"avg1-holo":null,"avg7-holo":null,"avg30-holo":null},
+{"idProduct":907672,"idCategory":51,"avg":0.6,"low":0.02,"trend":0.23,"avg1":0.26,"avg7":0.33,"avg30":0.44,"avg-holo":null,"low-holo":null,"trend-holo":0,"avg1-holo":null,"avg7-holo":null,"avg30-holo":null},
+{"idProduct":909509,"idCategory":51,"avg":3009.79,"low":2199,"trend":3160.53,"avg1":4100,"avg7":3065.74,"avg30":2999.38,"avg-holo":null,"low-holo":null,"trend-holo":0,"avg1-holo":null,"avg7-holo":null,"avg30-holo":null},
+{"idProduct":909510,"idCategory":51,"avg":2780.5,"low":2000,"trend":2264.21,"avg1":1550,"avg7":2388.11,"avg30":2353.91,"avg-holo":null,"low-holo":null,"trend-holo":0,"avg1-holo":null,"avg7-holo":null,"avg30-holo":null},
+{"idProduct":273532,"idCategory":51,"avg":0.14,"low":0.02,"trend":0.13,"avg1":0.09,"avg7":0.14,"avg30":0.15,"avg-holo":0.4,"low-holo":0.2,"trend-holo":0.49,"avg1-holo":0.45,"avg7-holo":0.36,"avg30-holo":0.54},
+{"idProduct":895551,"idCategory":1016,"avg":150.45,"low":89.9,"trend":132.95,"avg1":null,"avg7":null,"avg30":null,"avg-holo":null,"low-holo":null,"trend-holo":0,"avg1-holo":null,"avg7-holo":null,"avg30-holo":null},
+{"idProduct":895553,"idCategory":1015,"avg":39.86,"low":2.5,"trend":29.92,"avg1":null,"avg7":null,"avg30":null,"avg-holo":null,"low-holo":null,"trend-holo":0,"avg1-holo":null,"avg7-holo":null,"avg30-holo":null},
+{"idProduct":895559,"idCategory":1015,"avg":32.02,"low":19.49,"trend":38.69,"avg1":null,"avg7":null,"avg30":null,"avg-holo":null,"low-holo":null,"trend-holo":0,"avg1-holo":null,"avg7-holo":null,"avg30-holo":null},
+{"idProduct":890359,"idCategory":52,"avg":8.08,"low":4,"trend":7.73,"avg1":null,"avg7":null,"avg30":null,"avg-holo":null,"low-holo":null,"trend-holo":0,"avg1-holo":null,"avg7-holo":null,"avg30-holo":null},
+{"idProduct":271439,"idCategory":52,"avg":149,"low":150,"trend":279.1,"avg1":null,"avg7":null,"avg30":null,"avg-holo":null,"low-holo":null,"trend-holo":3.93,"avg1-holo":null,"avg7-holo":null,"avg30-holo":null},
+{"idProduct":908414,"idCategory":1017,"avg":2.74,"low":2.9,"trend":3.17,"avg1":null,"avg7":null,"avg30":null}]}
