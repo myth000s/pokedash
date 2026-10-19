@@ -23,7 +23,7 @@ export function HeroDeal({ deal, now }: { deal: DealView; now: Date }) {
       {/* p-5 keeps the 2px gold focus outline (+2px offset) of the link fully inside the ring's overflow clip. */}
       <div className="relative grid grid-cols-1 items-center gap-5 rounded-2xl bg-[rgba(10,12,30,0.93)] p-5 md:grid-cols-[200px_1fr] lg:grid-cols-[200px_1fr_230px] lg:gap-6 lg:px-6">
         <div className="mx-auto w-40 md:w-full">
-          <CardImage src={deal.imageUrl} alt={deal.productName} />
+          <CardImage key={deal.imageUrl ?? 'none'} src={deal.imageUrl} alt={deal.productName} />
         </div>
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.1em] text-gold">Best deal right now</p>
@@ -53,7 +53,7 @@ export function HeroDeal({ deal, now }: { deal: DealView; now: Date }) {
             <p>{deal.shippingCents === null ? 'Shipping not included' : `+ ${formatEuro(deal.shippingCents)} shipping`}</p>
             {benchmark.valueCents !== null && (
               <p className="mt-1">
-                market <s className="text-[#8790c4]">{formatEuro(benchmark.valueCents)}</s>
+                market <s className="text-mute"><span className="sr-only">market value </span>{formatEuro(benchmark.valueCents)}</s>
               </p>
             )}
           </div>

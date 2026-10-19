@@ -43,7 +43,11 @@ body {
 .holo-ring::before {
   content: '';
   position: absolute;
-  inset: -60%;
+  width: 200%;
+  aspect-ratio: 1;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
   background: conic-gradient(#4cc9f0, #b15cff, #f85888, #ffd166, #06d6a0, #4cc9f0);
   animation: holo-spin 7s linear infinite;
 }
@@ -58,7 +62,6 @@ body {
   transform: perspective(900px);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.8);
-  background: linear-gradient(160deg, #2a2f5a, #151935);
 }
 .holo-tilt::after {
   content: '';

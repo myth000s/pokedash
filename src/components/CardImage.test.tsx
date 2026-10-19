@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CardImage } from './CardImage';
 
@@ -16,5 +16,21 @@ describe('CardImage', () => {
     render(<CardImage src="https://www.cardtrader.com/x.jpg" alt="Raikou" />);
     fireEvent.error(screen.getByRole('img', { name: 'Raikou' }));
     expect(screen.getByRole('img', { name: 'Raikou' })).toHaveTextContent('R');
+  });
+  it('sends no referrer with the picture request', () => {
+    render(<CardImage src="https://www.cardtrader.com/x.jpg" alt="Raikou" />);
+    expect(screen.getByRole('img', { name: 'Raikou' })).toHaveAttribute('referrerpolicy', 'no-referrer');
+  });
+  describe('picture that failed before hydration', () => {
+    afterEach(() => {
+      delete (HTMLImageElement.prototype as unknown as Record<string, unknown>).complete;
+      delete (HTMLImageElement.prototype as unknown as Record<string, unknown>).naturalWidth;
+    });
+    it('shows the placeholder when the mounted img is complete with no width', () => {
+      Object.defineProperty(HTMLImageElement.prototype, 'complete', { configurable: true, get: () => true });
+      Object.defineProperty(HTMLImageElement.prototype, 'naturalWidth', { configurable: true, get: () => 0 });
+      render(<CardImage src="https://www.cardtrader.com/x.jpg" alt="Raikou" />);
+      expect(screen.getByRole('img', { name: 'Raikou' })).toHaveTextContent('R');
+    });
   });
 });
