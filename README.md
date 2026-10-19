@@ -15,11 +15,14 @@ Kleinanzeigen is intentionally not supported: its terms ban scrapers.
 ```bash
 npm install
 npx supabase start               # local Postgres on port 54322
-cp .env.example .env.local       # then paste your CardTrader token into CARDTRADER_TOKEN
+cp .env.example .env.local       # then paste your CardTrader token into CARDTRADER_TOKEN in .env.local
 npm run db:migrate
+npm run cardtrader:smoke         # run once to confirm CardTrader's data shape
 npm run ingest                   # Cardmarket values, then CardTrader listings
 npm run dev                      # http://localhost:3000
 ```
+
+Paste the token only into `.env.local` (git-ignored). Never put it in `.env.example`, which is committed; a test fails if it is not empty there.
 
 Run `npm run ingest` whenever you want fresh data. Without `CARDTRADER_TOKEN` it loads Cardmarket values only and skips CardTrader.
 
