@@ -8,7 +8,7 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  const db = createDb(url);
+  const db = createDb(url, { quiet: true });
   try {
     // createDb returns a generic Db type; the postgres-js migrator needs the concrete one.
     await migrate(db as unknown as Parameters<typeof migrate>[0], { migrationsFolder: 'drizzle' });

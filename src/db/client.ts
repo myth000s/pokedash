@@ -5,8 +5,9 @@ import * as schema from './schema';
 
 export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
-export function createDb(url: string): Db {
-  return drizzle(postgres(url), { schema }) as unknown as Db;
+export function createDb(url: string, options: { quiet?: boolean } = {}): Db {
+  const client = options.quiet ? postgres(url, { onnotice: () => {} }) : postgres(url);
+  return drizzle(client, { schema }) as unknown as Db;
 }
 
 /** Ends the underlying postgres connection of a Db made by createDb. */

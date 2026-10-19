@@ -17,3 +17,17 @@ export function formatAge(then: Date, now: Date): string {
   const days = Math.floor(hours / 24);
   return `${days} ${days === 1 ? 'day' : 'days'} ago`;
 }
+
+const count = new Intl.NumberFormat('en-IE');
+
+export function formatCount(n: number): string {
+  return count.format(n);
+}
+
+export function formatFreshness(then: Date | null, now: Date): string {
+  if (!then) return '–';
+  const hours = Math.max(0, now.getTime() - then.getTime()) / 3_600_000;
+  if (hours < 24) return 'Today';
+  const days = Math.floor(hours / 24);
+  return `${days} ${days === 1 ? 'day' : 'days'} old`;
+}

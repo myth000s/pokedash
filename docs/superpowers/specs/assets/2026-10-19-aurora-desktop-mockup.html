@@ -1,0 +1,142 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Chakra+Petch:wght@400;500;600;700&display=swap');
+.ad { --bg:#080a17; --panel:rgba(255,255,255,.06); --line:rgba(255,255,255,.13); --ink:#e9ecff; --mute:#a9b1e0; --gold:#ffd166; --mint:#06d6a0;
+  font-family:'Chakra Petch',sans-serif; color:var(--ink); border-radius:14px; overflow:hidden;
+  background: radial-gradient(55% 45% at 8% 0%, rgba(76,201,240,.28), transparent), radial-gradient(45% 55% at 100% 20%, rgba(177,92,255,.30), transparent), radial-gradient(60% 50% at 45% 110%, rgba(248,88,136,.22), transparent), var(--bg);
+  padding:18px 22px 24px; min-width:980px; }
+.ad-top { display:flex; align-items:center; gap:14px; }
+.ad-logo { font-family:'Russo One',sans-serif; font-size:22px; letter-spacing:.02em; background:linear-gradient(90deg,#4cc9f0,#b15cff,#f85888,#ffd166); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.ad-chip { border:1px solid var(--line); background:var(--panel); border-radius:999px; padding:5px 12px; font-size:12px; color:var(--mute); }
+.ad-chip b { color:var(--ink); font-weight:600; }
+.ad-live { margin-left:auto; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--mute); }
+.ad-dot { width:8px; height:8px; border-radius:50%; background:var(--mint); box-shadow:0 0 0 0 rgba(6,214,160,.6); animation:ad-pulse 2s infinite; }
+@keyframes ad-pulse { 70% { box-shadow:0 0 0 8px rgba(6,214,160,0); } 100% { box-shadow:0 0 0 0 rgba(6,214,160,0); } }
+.ad-stats { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin:16px 0; }
+.ad-stat { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 12px; font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--mute); }
+.ad-stat b { display:block; font-family:'Russo One',sans-serif; font-size:21px; letter-spacing:0; text-transform:none; color:#fff; margin-top:2px; }
+.ad-stat b.g { color:var(--gold); }
+
+.ad-hero { position:relative; border-radius:18px; padding:2px; overflow:hidden; }
+.ad-ring { position:absolute; inset:-60%; background:conic-gradient(#4cc9f0,#b15cff,#f85888,#ffd166,#06d6a0,#4cc9f0); animation:ad-spin 7s linear infinite; }
+@keyframes ad-spin { to { transform:rotate(1turn); } }
+.ad-hin { position:relative; border-radius:16px; background:rgba(10,12,30,.93); display:grid; grid-template-columns:200px 1fr 230px; gap:22px; padding:18px 22px; align-items:center; }
+.ad-img { position:relative; aspect-ratio:5/7; border-radius:10px; overflow:hidden; transition:transform .25s ease, box-shadow .25s ease; transform:perspective(900px); box-shadow:0 18px 40px -16px rgba(0,0,0,.8); background:linear-gradient(160deg,#2a2f5a,#151935); }
+.ad-img img { width:100%; height:100%; object-fit:cover; display:block; }
+.ad-img::after { content:''; position:absolute; inset:0; mix-blend-mode:color-dodge; opacity:0; transition:opacity .25s;
+  background:linear-gradient(115deg, transparent 20%, rgba(255,77,109,.55) 35%, rgba(255,209,102,.55) 45%, rgba(6,214,160,.5) 55%, rgba(76,201,240,.55) 65%, transparent 80%); background-size:250% 250%; background-position:100% 0; }
+.ad-img:hover { transform:perspective(900px) rotateX(5deg) rotateY(-9deg) scale(1.02); box-shadow:0 26px 50px -14px rgba(177,92,255,.55); }
+.ad-img:hover::after { opacity:.55; background-position:0 100%; transition:opacity .25s, background-position 1.2s ease; }
+@media (prefers-reduced-motion: reduce) { .ad-ring, .ad-dot { animation:none; } .ad-img, .ad-img:hover { transform:none; } }
+.ad-k { font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--gold); }
+.ad-n { font-family:'Russo One',sans-serif; font-size:34px; line-height:1.1; margin:4px 0 2px; }
+.ad-s { color:var(--mute); font-size:13px; }
+.ad-badges { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
+.ad-badge { font-size:11.5px; border:1px solid var(--line); background:var(--panel); border-radius:6px; padding:3px 8px; }
+.ad-badge.hi { border-color:rgba(6,214,160,.5); color:#8ff0cf; }
+.ad-why { font-size:12px; color:var(--mute); }
+.ad-price { text-align:right; }
+.ad-save { display:inline-block; font-family:'Russo One',sans-serif; font-size:30px; color:#03241b; background:var(--mint); border-radius:12px; padding:6px 14px; }
+.ad-save small { font-size:15px; opacity:.75; }
+.ad-pp { margin-top:12px; font-size:13px; color:var(--mute); }
+.ad-pp b { font-family:'Russo One',sans-serif; font-size:26px; color:#fff; display:block; }
+.ad-pp s { color:#8790c4; }
+.ad-cta { display:inline-block; margin-top:14px; background:linear-gradient(90deg,#ffd166,#f8a14a); color:#2a1700; font-weight:700; border-radius:10px; padding:10px 16px; font-size:14px; cursor:pointer; }
+
+.ad-bar { display:flex; align-items:center; gap:8px; margin:22px 0 12px; }
+.ad-bar h4 { margin:0 10px 0 0; font-family:'Russo One',sans-serif; font-size:16px; font-weight:400; }
+.ad-f { font-size:12px; border:1px solid var(--line); border-radius:999px; padding:4px 11px; color:var(--mute); }
+.ad-f.on { background:#fff; color:#0a0c1e; border-color:#fff; font-weight:600; }
+.ad-sort { margin-left:auto; font-size:12px; color:var(--mute); }
+.ad-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+.ad-t { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:10px; display:flex; flex-direction:column; gap:8px; }
+.ad-t .ad-img { border-radius:8px; }
+.ad-tn { font-weight:700; font-size:14px; line-height:1.2; }
+.ad-tm { font-size:11.5px; color:var(--mute); }
+.ad-trow { display:flex; align-items:baseline; justify-content:space-between; }
+.ad-trow b { font-family:'Russo One',sans-serif; font-size:18px; }
+.ad-trow s { color:#8790c4; font-size:12px; }
+.ad-pill { font-family:'Russo One',sans-serif; font-size:12.5px; background:rgba(6,214,160,.16); color:#8ff0cf; border:1px solid rgba(6,214,160,.45); border-radius:999px; padding:2px 9px; }
+.ad-note { margin-top:14px; font-size:11.5px; color:var(--mute); }
+</style>
+
+<h2>Aurora Dashboard: desktop layout</h2>
+<p class="subtitle">Built from today's real deals, sorted by euro saving. Hover a card picture to see the holo tilt. The filter chips are just to show where filters would go later (planned for slice 4).</p>
+
+<div class="mockup">
+  <div class="mockup-header">pokedash · desktop (≈1280 px)</div>
+  <div class="mockup-body" style="overflow-x:auto">
+    <div class="ad">
+      <div class="ad-top">
+        <div class="ad-logo">pokedash</div>
+        <div class="ad-chip">Set: <b>30th Celebration</b></div>
+        <div class="ad-live"><span class="ad-dot"></span>Live · checked 5 min ago</div>
+      </div>
+
+      <div class="ad-stats">
+        <div class="ad-stat">Deals now<b>5</b></div>
+        <div class="ad-stat">Best saving<b class="g">€2.87</b></div>
+        <div class="ad-stat">Listings checked<b>23,638</b></div>
+        <div class="ad-stat">Products tracked<b>226</b></div>
+        <div class="ad-stat">Market values<b>Today</b></div>
+      </div>
+
+      <div class="ad-hero"><div class="ad-ring"></div>
+        <div class="ad-hin">
+          <div class="ad-img"><img alt="Raikou card" src="https://cardtrader.com/uploads/blueprints/image/413227/preview_413227-raikou-30th-celebration-stamp-050-185-30th-celebration.jpg"></div>
+          <div>
+            <div class="ad-k">Best deal right now</div>
+            <div class="ad-n">Raikou</div>
+            <div class="ad-s">Amazing Shot · 30th Celebration stamp · Single</div>
+            <div class="ad-badges">
+              <span class="ad-badge">EN</span><span class="ad-badge">Near Mint</span><span class="ad-badge">CardTrader</span><span class="ad-badge">Seller in PT</span><span class="ad-badge hi">High confidence</span>
+            </div>
+            <div class="ad-why">Market value from Cardmarket sales, updated today · listing seen 5 min ago · shipping not included</div>
+          </div>
+          <div class="ad-price">
+            <div class="ad-save">€2.87 <small>−22%</small></div>
+            <div class="ad-pp"><b>€10.28</b>market <s>€13.15</s></div>
+            <div class="ad-cta">View on CardTrader →</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ad-bar">
+        <h4>All deals</h4>
+        <span class="ad-f on">All</span><span class="ad-f">Singles</span><span class="ad-f">Sealed</span><span class="ad-f">EN</span><span class="ad-f">DE</span>
+        <span class="ad-sort">Sorted by: biggest € saving</span>
+      </div>
+
+      <div class="ad-grid">
+        <div class="ad-t">
+          <div class="ad-img"><img alt="Crobat G card" src="https://cardtrader.com/uploads/blueprints/image/413215/preview_413215-crobat-g-lv-44-30th-celebration-stamp-47-127-30th-celebration.jpg"></div>
+          <div class="ad-tn">Crobat [G] Lv.44</div>
+          <div class="ad-tm">EN · Near Mint · PT</div>
+          <div class="ad-trow"><b>€5.43</b><s>€7.88</s></div>
+          <div class="ad-trow"><span class="ad-pill">€2.45 · −31%</span><span class="ad-tm">5 min ago</span></div>
+        </div>
+        <div class="ad-t">
+          <div class="ad-img"><img alt="Sneasel card" src="https://cardtrader.com/uploads/blueprints/image/413212/preview_413212-sneasel-30th-celebration-stamp-25-111-30th-celebration.jpg"></div>
+          <div class="ad-tn">Sneasel</div>
+          <div class="ad-tm">EN · Near Mint · PT</div>
+          <div class="ad-trow"><b>€5.08</b><s>€7.38</s></div>
+          <div class="ad-trow"><span class="ad-pill">€2.30 · −31%</span><span class="ad-tm">5 min ago</span></div>
+        </div>
+        <div class="ad-t">
+          <div class="ad-img"><img alt="Crobat G card" src="https://cardtrader.com/uploads/blueprints/image/413215/preview_413215-crobat-g-lv-44-30th-celebration-stamp-47-127-30th-celebration.jpg"></div>
+          <div class="ad-tn">Crobat [G] Lv.44</div>
+          <div class="ad-tm">EN · Near Mint · US</div>
+          <div class="ad-trow"><b>€6.29</b><s>€7.88</s></div>
+          <div class="ad-trow"><span class="ad-pill">€1.59 · −20%</span><span class="ad-tm">5 min ago</span></div>
+        </div>
+        <div class="ad-t">
+          <div class="ad-img"><img alt="Maushold card" src="https://cardtrader.com/uploads/blueprints/image/406807/preview_406807-maushold-illustration-rare-146-128-30th-celebration(2).jpg"></div>
+          <div class="ad-tn">Maushold</div>
+          <div class="ad-tm">EN · Near Mint · IT · medium confidence</div>
+          <div class="ad-trow"><b>€4.11</b><s>€5.60</s></div>
+          <div class="ad-trow"><span class="ad-pill">€1.49 · −27%</span><span class="ad-tm">5 min ago</span></div>
+        </div>
+      </div>
+      <div class="ad-note">Each tile opens the listing on CardTrader. Pictures come from CardTrader.</div>
+    </div>
+  </div>
+</div>

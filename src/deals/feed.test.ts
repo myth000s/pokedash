@@ -21,6 +21,10 @@ const seed = (...ls: Parameters<typeof makeListing>[0][]) =>
   ingestListings(db, fakeProvider('cardtrader', ls.map((l) => makeListing(l))), SET, NOW);
 
 describe('getDealFeed', () => {
+  it('passes the picture link through', async () => {
+    await seed({ imageUrl: 'https://www.cardtrader.com/uploads/etb.jpg' });
+    expect((await getDealFeed(db, { now: NOW }))[0].imageUrl).toBe('https://www.cardtrader.com/uploads/etb.jpg');
+  });
   it('returns a scored deal with market value and discount', async () => {
     await seed({});
     const [deal] = await getDealFeed(db, { now: NOW });
@@ -51,10 +55,11 @@ describe('getDealFeed', () => {
     await ingestListings(db, fakeProvider('cardtrader', []), SET, new Date('2026-10-19T12:15:00Z'));
     expect(await getDealFeed(db, { now: NOW, includeNonDeals: true })).toEqual([]);
   });
-  it('sorts by discount, biggest first', async () => {
+  it('sorts by euro saving, biggest first', async () => {
+    // ETB saves €33.95 (26%); Knock Out saves €13.69 (35%): € saving wins.
     await seed({}, { externalId: 'ct-ko', cardmarketProductId: 895559, title: 'Knock Out', priceCents: 2500 });
     const feed = await getDealFeed(db, { now: NOW });
-    expect(feed.map((d) => d.productName)).toEqual(['30th Celebration: Knock Out Collection', '30th Celebration Elite Trainer Box']);
+    expect(feed.map((d) => d.productName)).toEqual(['30th Celebration Elite Trainer Box', '30th Celebration: Knock Out Collection']);
   });
   it('marks a product without a snapshot as insufficient', async () => {
     const [p] = await db.insert(products).values({

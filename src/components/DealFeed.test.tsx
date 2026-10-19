@@ -7,21 +7,43 @@ import type { DealView } from '@/deals/feed';
 const NOW = new Date('2026-10-19T12:00:00Z');
 const deal = (over: Partial<DealView> = {}): DealView => ({
   listingId: 1, productName: '30th Celebration Elite Trainer Box', kind: 'sealed', marketplace: 'cardtrader',
-  url: 'https://www.cardtrader.com/cards/1001', condition: null, language: 'de', isReverseHolo: false, sellerCountry: 'DE',
+  url: 'https://www.cardtrader.com/cards/1001', condition: null, language: 'de', isReverseHolo: false, sellerCountry: 'DE', imageUrl: null,
   priceCents: 9900, shippingCents: null, currency: 'EUR', lastSeenAt: NOW,
   benchmark: { valueCents: 13295, basis: 'trend', confidence: 'high', reasons: [], capturedAt: new Date('2026-10-19T00:42:46Z') },
   score: { deliveredCents: 9900, shippingKnown: false, discountCents: 3395, discountPct: 0.2554, isDeal: true, warnings: ['Shipping not included'], notDealReasons: [] },
   ...over,
 });
+const sneasel = deal({
+  listingId: 2, productName: 'Sneasel [Fury Swipes | Beat Up]', kind: 'single', url: 'https://www.cardtrader.com/cards/413212',
+  language: 'en', condition: 'near_mint', sellerCountry: 'PT', priceCents: 508,
+  benchmark: { ...deal().benchmark, valueCents: 738 },
+  score: { ...deal().score, discountCents: 230, discountPct: 0.3117, isDeal: true, warnings: ['Shipping not included'] },
+});
 
 describe('DealFeed', () => {
-  it('shows a deal with price, market value, discount and link', () => {
+  it('shows the best deal as the hero', () => {
     render(<DealFeed deals={[deal()]} now={NOW} lastCheckedAt={NOW} />);
-    expect(screen.getByRole('heading', { name: '30th Celebration Elite Trainer Box' })).toBeInTheDocument();
-    for (const text of ['Sealed', 'CardTrader', 'DE', '€99.00', 'Shipping not included', 'Market value €132.95', 'High confidence', '€33.95 below market (26%)']) {
-      expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.getByText('Best deal right now')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: '30th Celebration Elite Trainer Box' })).toBeInTheDocument();
+    for (const t of ['Sealed', '€99.00', 'Shipping not included', '€132.95', 'High confidence', '€33.95 · −26%', 'Seller in DE', 'DE', 'CardTrader']) {
+      expect(screen.getByText(t)).toBeInTheDocument();
     }
-    expect(screen.getByRole('link', { name: 'View listing' })).toHaveAttribute('href', 'https://www.cardtrader.com/cards/1001');
+    expect(screen.getByRole('link', { name: 'View on CardTrader' })).toHaveAttribute('href', 'https://www.cardtrader.com/cards/1001');
+  });
+  it('shows only the hero when there is one deal', () => {
+    render(<DealFeed deals={[deal()]} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.queryByText('All deals')).not.toBeInTheDocument();
+  });
+  it('lists the other deals as tiles', () => {
+    render(<DealFeed deals={[deal(), sneasel]} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.getByText('All deals')).toBeInTheDocument();
+    expect(screen.getByText('Sorted by: biggest € saving')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Sneasel' })).toBeInTheDocument();
+    expect(screen.getByText('EN · Near Mint · Seller PT')).toBeInTheDocument();
+    expect(screen.getByText('Fury Swipes | Beat Up')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View Sneasel on CardTrader' })).toHaveAttribute('title', 'Sneasel [Fury Swipes | Beat Up]');
+    expect(screen.getByText('€2.30 · −31%')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View Sneasel on CardTrader' })).toHaveAttribute('href', 'https://www.cardtrader.com/cards/413212');
   });
   it('shows the seller country and the confidence reasons', () => {
     const d = deal({ benchmark: { ...deal().benchmark, confidence: 'medium', reasons: ['Market value is 30 hours old', 'Few recent sales'] } });
@@ -54,6 +76,7 @@ describe('DealFeed', () => {
     render(<DealFeed deals={[]} now={NOW} lastCheckedAt={new Date(NOW.getTime() - 5 * 60_000)} />);
     expect(screen.getByText('No deals right now.')).toBeInTheDocument();
     expect(screen.getByText('Last checked 5 min ago')).toBeInTheDocument();
+    expect(screen.getByText('A deal needs at least 20% below market value.')).toBeInTheDocument();
   });
   it('says when nothing has been checked yet', () => {
     render(<DealFeed deals={[]} now={NOW} lastCheckedAt={null} />);

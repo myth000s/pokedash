@@ -10,7 +10,7 @@ import type {
 
 export interface DealView {
   listingId: number; productName: string; kind: ProductKind; marketplace: Marketplace; url: string;
-  condition: Condition | null; language: string | null; isReverseHolo: boolean; sellerCountry: string | null;
+  condition: Condition | null; language: string | null; isReverseHolo: boolean; sellerCountry: string | null; imageUrl: string | null;
   priceCents: number; shippingCents: number | null; currency: string; lastSeenAt: Date;
   benchmark: BenchmarkAssessment; score: ScoredListing;
 }
@@ -33,6 +33,13 @@ function emptySnapshot(capturedAt: Date): BenchmarkSnapshot {
     avg: null, low: null, trend: null, avg1: null, avg7: null, avg30: null,
     avgHolo: null, lowHolo: null, trendHolo: null, avg1Holo: null, avg7Holo: null, avg30Holo: null,
   };
+}
+
+function byDescNullsLast(a: number | null, b: number | null): number {
+  if (a === b) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return b - a;
 }
 
 export async function getDealFeed(
@@ -74,7 +81,7 @@ export async function getDealFeed(
     );
     return {
       listingId: l.id, productName: p.name, kind, marketplace: l.marketplace as Marketplace, url: l.url,
-      condition, language: l.language, isReverseHolo: l.isReverseHolo, sellerCountry: l.sellerCountry,
+      condition, language: l.language, isReverseHolo: l.isReverseHolo, sellerCountry: l.sellerCountry, imageUrl: l.imageUrl,
       priceCents: l.priceCents, shippingCents: l.shippingCents, currency: l.currency, lastSeenAt: l.lastSeenAt,
       benchmark, score,
     };
@@ -82,16 +89,10 @@ export async function getDealFeed(
 
   return views
     .filter((v) => opts.includeNonDeals || v.score.isDeal)
-    .sort((a, b) => {
-      const pa = a.score.discountPct;
-      const pb = b.score.discountPct;
-      if (pa !== pb) {
-        if (pa === null) return 1;
-        if (pb === null) return -1;
-        return pb - pa;
-      }
-      return b.lastSeenAt.getTime() - a.lastSeenAt.getTime();
-    });
+    .sort((a, b) =>
+      byDescNullsLast(a.score.discountCents, b.score.discountCents)
+      || byDescNullsLast(a.score.discountPct, b.score.discountPct)
+      || b.lastSeenAt.getTime() - a.lastSeenAt.getTime());
 }
 
 export async function getLastCheckedAt(db: Db): Promise<Date | null> {

@@ -1,6 +1,19 @@
 import type { NormalizedListing } from '@/domain/types';
 import { CT_CONDITIONS, CT_LANGUAGE_KEY, CT_REVERSE_KEY, type CtBlueprint, type CtProduct } from './schema';
 
+const CT_IMAGE_HOSTS = new Set(['cardtrader.com', 'www.cardtrader.com']);
+
+// Only https links on CardTrader's own host are stored; anything else becomes null.
+export function safeCardTraderImageUrl(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  try {
+    const u = new URL(raw);
+    return u.protocol === 'https:' && CT_IMAGE_HOSTS.has(u.hostname) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
 export function normalizeCtProduct(
   p: CtProduct,
   blueprint: CtBlueprint | undefined,
@@ -43,6 +56,7 @@ export function normalizeCtProduct(
       isReverseHolo: p.properties_hash[CT_REVERSE_KEY] === true,
       sellerName: p.user.username,
       sellerCountry: p.user.country_code ?? null,
+      imageUrl: safeCardTraderImageUrl(blueprint.image_url),
     },
   };
 }

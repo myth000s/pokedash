@@ -1,26 +1,117 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-night: #080a17;
+  --color-ink: #e9ecff;
+  --color-mute: #a9b1e0;
+  --color-gold: #ffd166;
+  --color-mint: #06d6a0;
+  --color-holo-cyan: #4cc9f0;
+  --color-holo-purple: #b15cff;
+  --color-holo-pink: #f85888;
+  --font-display: var(--font-russo), Arial, sans-serif;
+  --font-sans: var(--font-chakra), Arial, Helvetica, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(55% 45% at 8% 0%, rgba(76, 201, 240, 0.28), transparent),
+    radial-gradient(45% 55% at 100% 20%, rgba(177, 92, 255, 0.3), transparent),
+    radial-gradient(60% 50% at 45% 110%, rgba(248, 88, 136, 0.22), transparent),
+    #080a17;
+  background-attachment: fixed;
+  color: #e9ecff;
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+/* Wrapper with a rotating holo conic border. Children go in a `relative` inner box that covers the ring. */
+.holo-ring {
+  position: relative;
+  overflow: hidden;
+  padding: 2px;
+  border-radius: 18px;
+}
+.holo-ring::before {
+  content: '';
+  position: absolute;
+  width: 200%;
+  aspect-ratio: 1;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  background: conic-gradient(#4cc9f0, #b15cff, #f85888, #ffd166, #06d6a0, #4cc9f0);
+  animation: holo-spin 7s linear infinite;
+}
+@keyframes holo-spin {
+  to { transform: rotate(1turn); }
+}
+
+/* Picture wrapper: tilts on hover and shows a foil sweep. */
+.holo-tilt {
+  position: relative;
+  overflow: hidden;
+  transform: perspective(900px);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.8);
+}
+.holo-tilt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: color-dodge;
+  opacity: 0;
+  transition: opacity 0.25s;
+  background: linear-gradient(115deg, transparent 20%, rgba(255, 77, 109, 0.55) 35%, rgba(255, 209, 102, 0.55) 45%, rgba(6, 214, 160, 0.5) 55%, rgba(76, 201, 240, 0.55) 65%, transparent 80%);
+  background-size: 250% 250%;
+  background-position: 100% 0;
+}
+.holo-tilt:hover {
+  transform: perspective(900px) rotateX(5deg) rotateY(-9deg) scale(1.02);
+  box-shadow: 0 26px 50px -14px rgba(177, 92, 255, 0.55);
+}
+.holo-tilt:hover::after {
+  opacity: 0.55;
+  background-position: 0 100%;
+  transition: opacity 0.25s, background-position 1.2s ease;
+}
+
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #06d6a0;
+  box-shadow: 0 0 0 0 rgba(6, 214, 160, 0.6);
+  animation: live-pulse 2s infinite;
+}
+@keyframes live-pulse {
+  70% { box-shadow: 0 0 0 8px rgba(6, 214, 160, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(6, 214, 160, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .holo-ring::before,
+  .live-dot,
+  .animate-pulse {
+    animation: none;
+  }
+  .holo-tilt,
+  .holo-tilt:hover {
+    transform: none;
+    transition: none;
+  }
+  .holo-tilt::after,
+  .holo-tilt:hover::after {
+    transition: none;
+  }
 }

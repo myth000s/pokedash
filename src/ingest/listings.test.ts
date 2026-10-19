@@ -19,6 +19,12 @@ beforeEach(async () => {
 });
 
 describe('ingestListings', () => {
+  it('stores and updates the picture link', async () => {
+    await ingestListings(db, fakeProvider('cardtrader', [makeListing()]), SET, T1);
+    expect((await db.select().from(listings))[0].imageUrl).toBeNull();
+    await ingestListings(db, fakeProvider('cardtrader', [makeListing({ imageUrl: 'https://www.cardtrader.com/uploads/etb.jpg' })]), SET, T2);
+    expect((await db.select().from(listings))[0].imageUrl).toBe('https://www.cardtrader.com/uploads/etb.jpg');
+  });
   it('stores a new listing with its first price', async () => {
     const r = await ingestListings(db, fakeProvider('cardtrader', [makeListing()]), SET, T1);
     expect(r).toMatchObject({ upserted: 1, markedUnavailable: 0 });

@@ -23,6 +23,7 @@ export const ctBlueprintSchema = z
     id: z.number(),
     name: z.string(),
     expansion_id: z.number(),
+    image_url: z.string().nullish(),
     card_market_ids: z.array(z.number()).nullish().transform((v) => v ?? []),
   })
   .loose();
