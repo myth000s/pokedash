@@ -45,7 +45,7 @@ function Toolbar({ section, allSingles, sealedType }: { section: 'singles' | 'se
 function Cell({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-2 md:block">
-      <span aria-hidden="true" className="text-[11px] uppercase tracking-[0.06em] text-mute md:hidden">{label}</span>
+      <span className="text-[11px] uppercase tracking-[0.06em] text-mute md:sr-only">{label}</span>
       <div>{children}</div>
     </div>
   );
@@ -79,7 +79,7 @@ function Row({ row, section }: { row: SectionRow; section: 'singles' | 'sealed' 
         <b className="line-clamp-2 font-semibold">{title}</b>
         {sub && <span className="line-clamp-1 text-[11.5px] text-mute">{sub}</span>}
       </div>
-      <div className="col-span-2 grid grid-cols-1 gap-1.5 md:contents">
+      <div id={`section-row-${row.productId}`} className="col-span-2 grid grid-cols-1 gap-1.5 md:contents">
         <Cell label="Market value">
           <span className="font-display">{row.benchmark.valueCents !== null ? formatEuro(row.benchmark.valueCents) : '–'}</span>
         </Cell>
@@ -104,10 +104,14 @@ function Row({ row, section }: { row: SectionRow; section: 'singles' | 'sealed' 
       </div>
     </>
   );
-  return offer ? (
-    <a href={offer.url} target="_blank" rel="noopener noreferrer" aria-label={`View ${title} on CardTrader`} className={`${classes} hover:border-white/30`}>{cells}</a>
-  ) : (
+  return (
+    <li>
+      {offer ? (
+    <a href={offer.url} target="_blank" rel="noopener noreferrer" aria-label={`View ${title} on CardTrader`} aria-describedby={`section-row-${row.productId}`} className={`${classes} hover:border-white/30`}>{cells}</a>
+      ) : (
     <div className={classes}>{cells}</div>
+      )}
+    </li>
   );
 }
 
@@ -130,7 +134,9 @@ export function SectionTable({ section, rows, allSingles, sealedType }: {
             <span />
             {heads.map((h) => <span key={h}>{h}</span>)}
           </div>
-          {rows.map((r) => <Row key={r.productId} row={r} section={section} />)}
+          <ul role="list" className="m-0 flex list-none flex-col gap-1.5 p-0">
+            {rows.map((r) => <Row key={r.productId} row={r} section={section} />)}
+          </ul>
         </div>
       )}
     </section>

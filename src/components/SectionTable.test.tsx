@@ -49,4 +49,18 @@ describe('SectionTable', () => {
     expect(screen.getByRole('link', { name: 'Elite Trainer Boxes' })).toHaveAttribute('aria-current', 'true');
     expect(screen.getByRole('link', { name: 'Battle Decks' })).toHaveAttribute('href', '?tab=sealed&type=battle-decks');
   });
+  it('labels every value for screen readers', () => {
+    render(<SectionTable section="sealed" rows={[row({ offer: null, offerCount: 0, us: null })]} allSingles={false} sealedType={null} />);
+    for (const l of ['Market value', 'US English-only', 'Cheapest EN/DE', 'Difference', 'Offers']) {
+      expect(screen.getAllByText(l).some((el) => !el.closest('[aria-hidden="true"]'))).toBe(true);
+    }
+    expect(screen.getByRole('listitem')).toBeInTheDocument();
+  });
+  it('describes the row link with its values', () => {
+    render(<SectionTable section="sealed" rows={[row()]} allSingles={false} sealedType={null} />);
+    const link = screen.getByRole('link', { name: /^View/ });
+    const target = document.getElementById(link.getAttribute('aria-describedby')!)!;
+    expect(target).toHaveTextContent('€99.00');
+    expect(target).toHaveTextContent('€132.95');
+  });
 });

@@ -9,7 +9,7 @@ const TABS: { key: DashboardTab; label: string }[] = [
 
 export function SectionTabs({ active, counts }: { active: DashboardTab; counts: Record<DashboardTab, number> }) {
   return (
-    <nav aria-label="Sections" className="mb-3 flex gap-1.5 overflow-x-auto border-b border-white/[0.13]">
+    <nav aria-label="Sections" className="mb-3 flex gap-1.5 overflow-x-auto p-1 border-b border-white/[0.13]">
       {TABS.map(({ key, label }) => (
         <a
           key={key}
