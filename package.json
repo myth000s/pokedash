@@ -9,8 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "cardtrader:smoke": "tsx --env-file=.env.local scripts/cardtrader-smoke.ts",
-    "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts"
+    "cardtrader:smoke": "tsx --env-file-if-exists=.env.local scripts/cardtrader-smoke.ts",
+    "ingest": "tsx --env-file-if-exists=.env.local scripts/ingest.ts",
+    "db:migrate": "tsx --env-file-if-exists=.env.local scripts/migrate.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",
