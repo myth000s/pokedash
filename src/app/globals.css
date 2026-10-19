@@ -107,7 +107,8 @@ body {
     transform: none;
     transition: none;
   }
-  .holo-tilt::after {
+  .holo-tilt::after,
+  .holo-tilt:hover::after {
     transition: none;
   }
 }

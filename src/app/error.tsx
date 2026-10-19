@@ -9,7 +9,7 @@ export default function Error({ retry }: { error: unknown; retry: () => void }) 
         <button
           type="button"
           onClick={() => retry()}
-          className="mt-4 inline-flex h-11 items-center justify-center rounded-[10px] bg-gradient-to-r from-[#ffd166] to-[#f8a14a] px-5 text-sm font-bold text-[#2a1700] hover:brightness-110"
+          className="mt-4 inline-flex h-11 items-center justify-center rounded-[10px] bg-gradient-to-r from-gold to-[#f8a14a] px-5 text-sm font-bold text-[#2a1700] hover:brightness-110"
         >
           Try again
         </button>
