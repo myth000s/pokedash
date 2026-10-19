@@ -47,7 +47,7 @@ describe('slice 1, end to end', () => {
     await db.update(products).set({ tcgplayerId: 704143 }).where(eq(products.cardmarketId, 895551));
     const ppt = { cardQuote: vi.fn(async () => { throw new Error('PPT down'); }), sealedQuote: vi.fn(async () => { throw new Error('PPT down'); }) };
     const [report] = await runIngestion(db, { fetchJson: cardmarketFetch(), providers: [], ppt }, [SET], NOW);
-    expect(report.usPrices).toEqual({ fetched: 0, alreadyToday: 0, noPrice: 0, failed: 0, stoppedEarly: true });
+    expect(report.usPrices).toEqual({ fetched: 0, alreadyToday: 0, noPrice: 0, failed: 0, stoppedEarly: true, stopReason: 'error', error: 'PPT down' });
     expect(report.cardmarket).toMatchObject({ products: 7 });
   });
 });

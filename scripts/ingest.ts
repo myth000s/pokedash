@@ -60,12 +60,14 @@ async function main() {
         }
       }
       if (r.usPrices) {
-        if ('error' in r.usPrices) {
+        if (!('fetched' in r.usPrices)) {
           console.log(`  US prices: ERROR ${r.usPrices.error}`);
           process.exitCode = 1;
         } else {
           const u = r.usPrices;
-          console.log(`  US prices: ${u.fetched} fetched, ${u.alreadyToday} already today, ${u.noPrice} without price${u.failed > 0 ? `, ${u.failed} failed` : ''}${u.stoppedEarly ? ' — stopped early (daily credits low)' : ''}`);
+          const stop = u.stopReason === 'error' ? ` — stopped early: ERROR ${u.error}` : u.stoppedEarly ? ' — stopped early (daily credits used up)' : '';
+          console.log(`  US prices: ${u.fetched} fetched, ${u.alreadyToday} already today, ${u.noPrice} without price${u.failed > 0 ? `, ${u.failed} failed` : ''}${stop}`);
+          if (u.stopReason === 'error') process.exitCode = 1;
         }
       }
     }
