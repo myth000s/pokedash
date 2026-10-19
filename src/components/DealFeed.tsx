@@ -1,5 +1,5 @@
 import type { DealView } from '@/deals/feed';
-import type { Condition, Marketplace } from '@/domain/types';
+import type { Condition, Confidence, Marketplace } from '@/domain/types';
 import { formatAge, formatEuro, formatPct } from '@/lib/format';
 
 const CONDITION_LABELS: Record<Condition, string> = {
@@ -14,6 +14,13 @@ const CONDITION_LABELS: Record<Condition, string> = {
 const MARKETPLACE_LABELS: Record<Marketplace, string> = {
   cardtrader: 'CardTrader',
   ebay: 'eBay',
+};
+
+const CONFIDENCE_LABELS: Record<Confidence, { label: string; tone: 'good' | 'warn' | 'neutral' }> = {
+  high: { label: 'High confidence', tone: 'good' },
+  medium: { label: 'Medium confidence', tone: 'warn' },
+  low: { label: 'Low confidence', tone: 'warn' },
+  insufficient: { label: 'Not enough data', tone: 'neutral' },
 };
 
 function Badge({ children, tone = 'neutral' }: { children: string; tone?: 'neutral' | 'good' | 'warn' }) {
@@ -43,15 +50,19 @@ function DealCard({ deal, now }: { deal: DealView; now: Date }) {
         <p className="text-sm text-zinc-600">
           {deal.shippingCents === null ? 'Shipping not included' : `+ ${formatEuro(deal.shippingCents)} shipping`}
         </p>
+        {deal.sellerCountry && <p className="text-xs text-zinc-500">{`Seller in ${deal.sellerCountry}`}</p>}
       </div>
       <div className="flex flex-col gap-1">
         {benchmark.valueCents !== null && (
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm text-zinc-700">{`Market value ${formatEuro(benchmark.valueCents)}`}</p>
-            <Badge tone={benchmark.confidence === 'high' ? 'good' : 'warn'}>
-              {benchmark.confidence === 'high' ? 'High confidence' : 'Medium confidence'}
+            <Badge tone={CONFIDENCE_LABELS[benchmark.confidence].tone}>
+              {CONFIDENCE_LABELS[benchmark.confidence].label}
             </Badge>
           </div>
+        )}
+        {benchmark.reasons.length > 0 && (
+          <p className="text-xs text-zinc-500">{benchmark.reasons.join(' · ')}</p>
         )}
         {score.discountCents !== null && score.discountPct !== null && (
           <p className="text-sm font-semibold text-emerald-700">
@@ -85,7 +96,7 @@ function DealCard({ deal, now }: { deal: DealView; now: Date }) {
 export function DealFeed({ deals, now, lastCheckedAt }: { deals: DealView[]; now: Date; lastCheckedAt: Date | null }) {
   if (deals.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-zinc-300 p-8 text-center">
+      <div className="rounded-xl border border-dashed border-zinc-400 bg-white p-8 text-center">
         <p className="text-base font-medium text-zinc-900">No deals right now.</p>
         <p className="mt-1 text-sm text-zinc-600">
           {lastCheckedAt ? `Last checked ${formatAge(lastCheckedAt, now)}` : 'No listings have been checked yet.'}

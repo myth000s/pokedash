@@ -7,7 +7,7 @@ import type { DealView } from '@/deals/feed';
 const NOW = new Date('2026-10-19T12:00:00Z');
 const deal = (over: Partial<DealView> = {}): DealView => ({
   listingId: 1, productName: '30th Celebration Elite Trainer Box', kind: 'sealed', marketplace: 'cardtrader',
-  url: 'https://www.cardtrader.com/cards/1001', condition: null, language: 'de', isReverseHolo: false,
+  url: 'https://www.cardtrader.com/cards/1001', condition: null, language: 'de', isReverseHolo: false, sellerCountry: 'DE',
   priceCents: 9900, shippingCents: null, currency: 'EUR', lastSeenAt: NOW,
   benchmark: { valueCents: 13295, basis: 'trend', confidence: 'high', reasons: [], capturedAt: new Date('2026-10-19T00:42:46Z') },
   score: { deliveredCents: 9900, shippingKnown: false, discountCents: 3395, discountPct: 0.2554, isDeal: true, warnings: ['Shipping not included'], notDealReasons: [] },
@@ -22,6 +22,24 @@ describe('DealFeed', () => {
       expect(screen.getByText(text)).toBeInTheDocument();
     }
     expect(screen.getByRole('link', { name: 'View listing' })).toHaveAttribute('href', 'https://www.cardtrader.com/cards/1001');
+  });
+  it('shows the seller country and the confidence reasons', () => {
+    const d = deal({ benchmark: { ...deal().benchmark, confidence: 'medium', reasons: ['Market value is 30 hours old', 'Few recent sales'] } });
+    render(<DealFeed deals={[d]} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.getByText('Seller in DE')).toBeInTheDocument();
+    expect(screen.getByText('Market value is 30 hours old · Few recent sales')).toBeInTheDocument();
+    expect(screen.getByText('Medium confidence')).toBeInTheDocument();
+  });
+  it('omits the seller line when the country is unknown', () => {
+    render(<DealFeed deals={[deal({ sellerCountry: null })]} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.queryByText(/Seller in/)).not.toBeInTheDocument();
+  });
+  it('labels low and insufficient confidence', () => {
+    const low = deal({ benchmark: { ...deal().benchmark, confidence: 'low' } });
+    const none = deal({ listingId: 2, benchmark: { ...deal().benchmark, confidence: 'insufficient' } });
+    render(<DealFeed deals={[low, none]} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.getByText('Low confidence')).toBeInTheDocument();
+    expect(screen.getByText('Not enough data')).toBeInTheDocument();
   });
   it('shows known shipping', () => {
     render(<DealFeed deals={[deal({ shippingCents: 599 })]} now={NOW} lastCheckedAt={NOW} />);

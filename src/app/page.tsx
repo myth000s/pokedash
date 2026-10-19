@@ -15,12 +15,12 @@ async function Feed() {
 
 export default function Home() {
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 bg-zinc-50 px-4 py-6">
+    <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">pokedash</h1>
-        <p className="text-sm text-zinc-600">30th Celebration deals</p>
+        <h1 className="text-2xl font-bold text-foreground">pokedash</h1>
+        <p className="text-sm text-foreground/70">30th Celebration deals</p>
       </header>
-      <Suspense fallback={<p className="text-sm text-zinc-500">Loading deals…</p>}>
+      <Suspense fallback={<p className="text-sm text-foreground/60">Loading deals…</p>}>
         <Feed />
       </Suspense>
     </main>
