@@ -8,4 +8,8 @@ describe('.env.example', () => {
     expect(line).toBeDefined();
     expect(line!.slice('CARDTRADER_TOKEN='.length).trim()).toBe('');
   });
+  it('lists an empty PokemonPriceTracker key', () => {
+    const lines = readFileSync('.env.example', 'utf8').split(/\r?\n/);
+    expect(lines).toContain('POKEMONPRICETRACKER_API_KEY=');
+  });
 });

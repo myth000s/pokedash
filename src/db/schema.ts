@@ -75,3 +75,15 @@ export const fxRates = pgTable('fx_rates', {
   rateDate: date('rate_date', { mode: 'string' }).primaryKey(),
   usdPerEur: doublePrecision('usd_per_eur').notNull(),
 });
+
+export const usReferencePrices = pgTable(
+  'us_reference_prices',
+  {
+    id: serial('id').primaryKey(),
+    productId: integer('product_id').notNull().references(() => products.id),
+    capturedAt: ts('captured_at').notNull(),
+    capturedDay: date('captured_day', { mode: 'string' }).notNull(),
+    usdCents: integer('usd_cents').notNull(),
+  },
+  (t) => [unique('us_reference_prices_product_day_uq').on(t.productId, t.capturedDay)],
+);

@@ -2,10 +2,11 @@ import { z } from 'zod';
 import { TRACKED_SETS } from '../src/config/sets';
 import { closeDb, createDb } from '../src/db/client';
 import { describeError } from '../src/lib/errors';
-import { fetchJson } from '../src/lib/http';
+import { fetchJson, fetchText } from '../src/lib/http';
 import { runIngestion } from '../src/ingest/run';
 import { createCardTraderClient } from '../src/providers/cardtrader/client';
 import { createCardTraderProvider } from '../src/providers/cardtrader/provider';
+import { createPptClient } from '../src/providers/ppt/client';
 import type { ListingProvider } from '../src/providers/types';
 
 async function main() {
@@ -20,11 +21,15 @@ async function main() {
   if (token) providers.push(createCardTraderProvider(createCardTraderClient({ token })));
   else console.log('CARDTRADER_TOKEN not set: skipping CardTrader');
 
+  const pptKey = process.env.POKEMONPRICETRACKER_API_KEY;
+  const ppt = pptKey ? createPptClient({ apiKey: pptKey }) : undefined;
+  if (!ppt) console.log('POKEMONPRICETRACKER_API_KEY not set: skipping US prices');
+
   const db = createDb(url);
   try {
     const reports = await runIngestion(
       db,
-      { fetchJson: (u) => fetchJson(u, { schema: z.unknown() }), providers },
+      { fetchJson: (u) => fetchJson(u, { schema: z.unknown() }), providers, fetchText: (u) => fetchText(u, {}), ppt },
       TRACKED_SETS,
       new Date(),
     );
@@ -44,6 +49,23 @@ async function main() {
           const x = p.result;
           console.log(`  ${p.marketplace}: ${x.upserted} upserted, ${x.skipped} skipped, ${x.markedUnavailable} marked unavailable`);
           for (const [reason, n] of Object.entries(x.skipReasons)) console.log(`    skipped ${reason}: ${n}`);
+        }
+      }
+      if (r.fx) {
+        if ('error' in r.fx) {
+          console.log(`  FX: ERROR ${r.fx.error}`);
+          process.exitCode = 1;
+        } else {
+          console.log(`  FX: ${r.fx.inserted ? 'stored' : 'already stored'} (${r.fx.rateDate})`);
+        }
+      }
+      if (r.usPrices) {
+        if ('error' in r.usPrices) {
+          console.log(`  US prices: ERROR ${r.usPrices.error}`);
+          process.exitCode = 1;
+        } else {
+          const u = r.usPrices;
+          console.log(`  US prices: ${u.fetched} fetched, ${u.alreadyToday} already today, ${u.noPrice} without price${u.stoppedEarly ? ' — stopped early (daily credits low)' : ''}`);
         }
       }
     }
