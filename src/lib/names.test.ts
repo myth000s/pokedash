@@ -7,4 +7,7 @@ describe('splitProductName', () => {
     expect(splitProductName('Crobat [G] Lv.44 [Flash Bite | Toxic Fang]')).toEqual({ title: 'Crobat [G] Lv.44', detail: 'Flash Bite | Toxic Fang' });
     expect(splitProductName('30th Celebration Elite Trainer Box')).toEqual({ title: '30th Celebration Elite Trainer Box', detail: null });
   });
+  it('keeps the whole name when the title would be empty', () => {
+    expect(splitProductName('[X]')).toEqual({ title: '[X]', detail: null });
+  });
 });

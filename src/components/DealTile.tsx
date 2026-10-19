@@ -5,13 +5,13 @@ import { CardImage } from './CardImage';
 
 export function DealTile({ deal, now }: { deal: DealView; now: Date }) {
   const { benchmark, score } = deal;
-  const { title } = splitProductName(deal.productName);
+  const { title, detail } = splitProductName(deal.productName);
   const marketplace = MARKETPLACE_LABELS[deal.marketplace];
   const warnings = score.warnings.filter((w) => w !== 'Shipping not included');
   const meta = [
     deal.language?.toUpperCase(),
     deal.condition ? CONDITION_LABELS[deal.condition] : null,
-    deal.sellerCountry,
+    deal.sellerCountry ? `Seller ${deal.sellerCountry}` : null,
     deal.isReverseHolo ? 'Reverse Holo' : null,
   ].filter(Boolean).join(' · ');
   return (
@@ -19,15 +19,17 @@ export function DealTile({ deal, now }: { deal: DealView; now: Date }) {
       href={deal.url}
       target="_blank"
       rel="noopener noreferrer"
+      title={deal.productName}
       aria-label={`View ${title} on ${marketplace}`}
       className="flex min-h-11 flex-col gap-2 rounded-[14px] border border-white/[0.13] bg-white/[0.06] p-2.5 hover:border-white/30"
     >
-      <CardImage src={deal.imageUrl} alt={deal.productName} />
+      <CardImage key={deal.imageUrl ?? 'none'} src={deal.imageUrl} alt={deal.productName} />
       <h3 className="line-clamp-2 text-sm font-bold leading-tight">{title}</h3>
+      {detail && <p className="line-clamp-1 text-xs text-mute">{detail}</p>}
       <p className="text-xs text-mute">{meta}</p>
       <div className="flex items-baseline justify-between">
         <span className="font-display text-lg">{formatEuro(deal.priceCents)}</span>
-        {benchmark.valueCents !== null && <s className="text-xs text-[#8790c4]">{formatEuro(benchmark.valueCents)}</s>}
+        {benchmark.valueCents !== null && <s className="text-xs text-mute"><span className="sr-only">market value </span>{formatEuro(benchmark.valueCents)}</s>}
       </div>
       <div className="flex items-center justify-between gap-2">
         {score.discountCents !== null && score.discountPct !== null && (

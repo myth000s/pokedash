@@ -5,7 +5,9 @@ export function splitProductName(name: string): { title: string; detail: string 
   if (!name.endsWith(']')) return { title: name, detail: null };
   const open = name.lastIndexOf('[');
   if (open === -1) return { title: name, detail: null };
-  return { title: name.slice(0, open).trim(), detail: name.slice(open + 1, -1) };
+  const title = name.slice(0, open).trim();
+  if (!title) return { title: name, detail: null };
+  return { title, detail: name.slice(open + 1, -1) };
 }
 
 export const CONDITION_LABELS: Record<Condition, string> = {

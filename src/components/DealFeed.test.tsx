@@ -39,7 +39,9 @@ describe('DealFeed', () => {
     expect(screen.getByText('All deals')).toBeInTheDocument();
     expect(screen.getByText('Sorted by: biggest € saving')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: 'Sneasel' })).toBeInTheDocument();
-    expect(screen.getByText('EN · Near Mint · PT')).toBeInTheDocument();
+    expect(screen.getByText('EN · Near Mint · Seller PT')).toBeInTheDocument();
+    expect(screen.getByText('Fury Swipes | Beat Up')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View Sneasel on CardTrader' })).toHaveAttribute('title', 'Sneasel [Fury Swipes | Beat Up]');
     expect(screen.getByText('€2.30 · −31%')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View Sneasel on CardTrader' })).toHaveAttribute('href', 'https://www.cardtrader.com/cards/413212');
   });
