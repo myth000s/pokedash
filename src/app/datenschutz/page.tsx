@@ -42,7 +42,7 @@ export default function DatenschutzPage() {
       <h2>4. Datenbank und Anmeldung (Supabase)</h2>
       <p>
         Konten und Anmeldung laufen über Supabase, Inc. (USA); die Daten liegen in der Region
-        Frankfurt (eu-central-1). Konten lege ausschließlich ich an, eine Selbstregistrierung
+        Irland (eu-west-1, EU). Konten lege ausschließlich ich an, eine Selbstregistrierung
         gibt es nicht. Die Anmeldung erfolgt mit E-Mail-Adresse, Passwort und einem Code aus
         einer Authenticator-App. Gespeichert werden:
       </p>
