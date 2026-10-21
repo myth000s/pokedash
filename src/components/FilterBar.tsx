@@ -49,7 +49,7 @@ export function FilterBar({ params }: { params: DashboardParams }) {
           </Field>
           <Field label="Max. price (€)" id="f-max">
             <input
-              id="f-max" type="number" name="max" min="1" step="1" inputMode="numeric"
+              id="f-max" type="number" name="max" min="1" max="100000" step="1" inputMode="numeric"
               defaultValue={params.maxPriceCents === null ? '' : params.maxPriceCents / 100}
               className={`${FIELD} w-28`}
             />

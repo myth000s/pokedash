@@ -35,6 +35,11 @@ describe('filterDeals', () => {
   it('filters by kind', () => {
     expect(ids(filterDeals(all, { ...none, kind: 'single' }))).toEqual([2, 3]);
   });
+  it('compares the rounded percent shown on the tile', () => {
+    const a = deal({ listingId: 7, pct: 0.296 });
+    const b = deal({ listingId: 8, pct: 0.294 });
+    expect(ids(filterDeals([a, b], { ...none, minPct: 30 }))).toEqual([7]);
+  });
   it('filters by minimum saving, inclusive', () => {
     expect(ids(filterDeals(all, { ...none, minPct: 35 }))).toEqual([2, 3]);
     expect(ids(filterDeals(all, { ...none, minPct: 50 }))).toEqual([3]);

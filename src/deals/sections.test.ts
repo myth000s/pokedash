@@ -61,9 +61,8 @@ describe('sections', () => {
   it('filters rows by name query', async () => {
     const rows = await sealed({ query: 'knock out' });
     expect(rows.map((r) => r.productName)).toEqual(['30th Celebration: Knock Out Collection']);
-    const singles = await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW, allSingles: true, query: 'pika' });
-    expect(singles.every((r) => /pika/i.test(r.productName))).toBe(true);
-    expect(singles.length).toBeLessThan(4);
+    const singles = await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW, allSingles: true, query: 'MEW' });
+    expect(singles.map((r) => r.productName)).toEqual(Array(3).fill('Mew [Psychic | 30C]'));
   });
   it('picks the cheapest offer in the chosen language even if another language is cheaper', async () => {
     await seed(

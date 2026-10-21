@@ -29,6 +29,18 @@ describe('SectionTable', () => {
     // "Elite Trainer Boxes" is also a toolbar chip, so look for the subline inside the row
     expect(within(link).getByText('Elite Trainer Boxes')).toBeInTheDocument();
   });
+  it('names the chosen language in the header and the no-offer text', () => {
+    const params = parseDashboardParams({ tab: 'sealed', lang: 'de' });
+    render(<SectionTable section="sealed" rows={[row({ offer: null, offerCount: 0 })]} allSingles={false} sealedType={null} params={params} />);
+    expect(screen.getByText('no DE offer yet')).toBeInTheDocument();
+    expect(screen.getAllByText('Cheapest DE').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/EN\/DE/)).toBeNull();
+  });
+  it('keeps EN/DE without a language filter', () => {
+    render(<SectionTable section="sealed" rows={[row({ offer: null, offerCount: 0 })]} allSingles={false} sealedType={null} />);
+    expect(screen.getByText('no EN/DE offer yet')).toBeInTheDocument();
+    expect(screen.getAllByText('Cheapest EN/DE').length).toBeGreaterThan(0);
+  });
   it('keeps q and lang in the singles chips', () => {
     const params = parseDashboardParams({ tab: 'singles', q: 'pika', lang: 'de' });
     render(<SectionTable section="singles" rows={[]} allSingles={false} sealedType={null} params={params} />);

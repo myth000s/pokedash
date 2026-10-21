@@ -23,7 +23,7 @@ function one(v: string | string[] | undefined): string | undefined {
 export function parseDashboardParams(sp: Record<string, string | string[] | undefined>): DashboardParams {
   const tab: DashboardTab = sp.tab === 'singles' || sp.tab === 'sealed' ? sp.tab : 'deals';
   const sealedType = SEALED_TYPES.find((t) => t.key === sp.type)?.key ?? null;
-  const q = Array.from((one(sp.q) ?? '').toWellFormed().trim()).slice(0, MAX_Q).join('').trim();
+  const q = Array.from((one(sp.q) ?? '').toWellFormed().replace(/\p{Cc}/gu, '').trim()).slice(0, MAX_Q).join('').trim();
   const langRaw = one(sp.lang);
   const lang = langRaw === 'en' || langRaw === 'de' ? langRaw : null;
   const kindRaw = one(sp.kind);
@@ -36,7 +36,11 @@ export function parseDashboardParams(sp: Record<string, string | string[] | unde
     const euros = Number(maxRaw);
     if (euros >= 1 && euros <= MAX_EUROS) maxPriceCents = euros * 100;
   }
-  return { tab, allSingles: sp.all === '1', sealedType, q, lang, kind, minPct, maxPriceCents };
+  const deals = tab === 'deals';
+  return {
+    tab, allSingles: sp.all === '1', sealedType, q, lang,
+    kind: deals ? kind : null, minPct: deals ? minPct : null, maxPriceCents: deals ? maxPriceCents : null,
+  };
 }
 
 export function hasActiveFilters(p: DashboardParams): boolean {

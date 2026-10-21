@@ -38,7 +38,7 @@ Invalid values are ignored and treated as unset, never as an error.
 
 **Deals filters.**
 - `kind` matches `DealView.kind`.
-- `min` keeps deals with `score.discountPct >= min / 100`.
+- `min` keeps deals whose rounded percent, as shown on the tile (`Math.round(score.discountPct * 100)`), is `>= min`.
 - `max` keeps deals with `priceCents <= max * 100`, where `priceCents` is the item price shown on the tile.
 - The sort is unchanged. The hero is the first deal of the filtered list.
 

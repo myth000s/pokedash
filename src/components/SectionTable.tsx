@@ -38,7 +38,7 @@ function Toolbar({ section, allSingles, sealedType, params }: {
         <>
           <Chip href={href({})} active={sealedType === null}>All</Chip>
           {SEALED_TYPES.filter((t) => t.key !== 'other').map((t) => (
-            <Chip key={t.key} href={href({ sealedType: t.key })}active={sealedType === t.key}>{t.label}</Chip>
+            <Chip key={t.key} href={href({ sealedType: t.key })} active={sealedType === t.key}>{t.label}</Chip>
           ))}
         </>
       )}
@@ -70,7 +70,7 @@ function Difference({ discountPct }: { discountPct: number | null }) {
   );
 }
 
-function Row({ row, section }: { row: SectionRow; section: 'singles' | 'sealed' }) {
+function Row({ row, section, langLabel }: { row: SectionRow; section: 'singles' | 'sealed'; langLabel: string }) {
   const { title, detail } = splitProductName(row.productName);
   const sub = section === 'singles' ? detail : SEALED_TYPES.find((t) => t.key === row.sealedType)?.label ?? null;
   const { offer } = row;
@@ -96,13 +96,13 @@ function Row({ row, section }: { row: SectionRow; section: 'singles' | 'sealed' 
             </span>
           ) : <span className="text-mute">–</span>}
         </Cell>
-        <Cell label="Cheapest EN/DE">
+        <Cell label={`Cheapest ${langLabel}`}>
           {offer ? (
             <span>
               <span className="font-display">{formatEuro(offer.priceCents)}</span>{' '}
               <small className="text-mute">{[offer.language.toUpperCase(), offer.sellerCountry].filter(Boolean).join(' · ')}</small>
             </span>
-          ) : <span className="text-xs text-mute">no EN/DE offer yet</span>}
+          ) : <span className="text-xs text-mute">{`no ${langLabel} offer yet`}</span>}
         </Cell>
         <Cell label="Difference"><Difference discountPct={offer ? offer.score.discountPct : null} /></Cell>
         <Cell label="Offers"><span>{row.offerCount}</span></Cell>
@@ -124,9 +124,10 @@ export function SectionTable({ section, rows, allSingles, sealedType, params = p
   section: 'singles' | 'sealed'; rows: SectionRow[]; allSingles: boolean; sealedType: SealedType | null;
   params?: DashboardParams; filter?: ResultFilter;
 }) {
+  const langLabel = params.lang === 'de' ? 'DE' : params.lang === 'en' ? 'EN' : 'EN/DE';
   const heads = section === 'singles'
-    ? ['Card', 'Market value', 'US English-only', 'Cheapest EN/DE (Near Mint)', 'Difference', 'Offers']
-    : ['Product', 'Market value', 'US English-only', 'Cheapest EN/DE', 'Difference', 'Offers'];
+    ? ['Card', 'Market value', 'US English-only', `Cheapest ${langLabel} (Near Mint)`, 'Difference', 'Offers']
+    : ['Product', 'Market value', 'US English-only', `Cheapest ${langLabel}`, 'Difference', 'Offers'];
   return (
     <section>
       <Toolbar section={section} allSingles={allSingles} sealedType={sealedType} params={params} />
@@ -146,7 +147,7 @@ export function SectionTable({ section, rows, allSingles, sealedType, params = p
           {/* Safari drops list semantics under list-style: none; role="list" restores them (false positive). */}
           {/* eslint-disable-next-line jsx-a11y/no-redundant-roles */}
           <ul role="list" className="m-0 flex list-none flex-col gap-1.5 p-0">
-            {rows.map((r) => <Row key={r.productId} row={r} section={section} />)}
+            {rows.map((r) => <Row key={r.productId} row={r} section={section} langLabel={langLabel} />)}
           </ul>
         </div>
       )}

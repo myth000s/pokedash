@@ -42,6 +42,16 @@ describe('FilterBar', () => {
     expect(hidden(c.container, 'type')).toHaveValue('etb');
     expect(hidden(c.container, 'all')).toBeNull();
   });
+  it('shows a hostile q as text, never as markup', () => {
+    const q = '"><script>x</script>';
+    const { container } = render(<FilterBar params={p({ q })} />);
+    expect(screen.getByLabelText('Search')).toHaveValue(q);
+    expect(container.querySelector('script')).toBeNull();
+  });
+  it('caps the max price input', () => {
+    render(<FilterBar params={p()} />);
+    expect(screen.getByLabelText('Max. price (€)')).toHaveAttribute('max', '100000');
+  });
   it('shows Clear filters only when a filter is active', () => {
     const a = render(<FilterBar params={p()} />);
     expect(screen.queryByRole('link', { name: 'Clear filters' })).not.toBeInTheDocument();

@@ -15,7 +15,7 @@ export function filterDeals(deals: DealView[], f: DealFilters): DealView[] {
   return deals.filter((d) =>
     (f.lang === null || d.language === f.lang)
     && (f.kind === null || d.kind === f.kind)
-    && (f.minPct === null || (d.score.discountPct !== null && d.score.discountPct >= f.minPct / 100))
+    && (f.minPct === null || (d.score.discountPct !== null && Math.round(d.score.discountPct * 100) >= f.minPct))
     && (f.maxPriceCents === null || d.priceCents <= f.maxPriceCents)
     && matchesQuery(d.productName, f.q));
 }
