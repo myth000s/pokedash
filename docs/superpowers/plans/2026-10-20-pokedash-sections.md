@@ -26,31 +26,31 @@
   - WCAG AA, focus rings, ≥44 px targets
   - plain lazy `<img>` via `CardImage`
   - money as integer cents
-  - **ID-only matching**
+  - ID-only matching
   - secrets only from env, never logged, never in errors, never in the browser
-- **English and German only.** Every query that shows offers filters `language in ('en','de')` and `available = true`. Only `currency = 'EUR'` offers are shown or counted.
-- **Deals are judged against Cardmarket only,** with the existing `scoreListing` + `markStaleListing` rules. The US price is never used for deal decisions.
+- English and German only. Every query that shows offers filters `language in ('en','de')` and `available = true`. Only `currency = 'EUR'` offers are shown or counted.
+- Deals are judged against Cardmarket only, with the existing `scoreListing` + `markStaleListing` rules. The US price is never used for deal decisions.
 - PokemonPriceTracker: base `https://www.pokemonpricetracker.com/api/v2`, header `Authorization: Bearer <POKEMONPRICETRACKER_API_KEY>`.
   - Cards: `GET /cards?tcgPlayerId=<id>`, using `prices.market` (USD).
   - Sealed: `GET /sealed-products?tcgPlayerId=<id>`, using `unopenedPrice` (USD).
   - At most once per product per UTC day.
-  - Stop when the `X-RateLimit-Daily-Remaining` header is below **10**.
-  - About **1100 ms** between calls.
+  - Stop when the `X-RateLimit-Daily-Remaining` header is below 10.
+  - About 1100 ms between calls.
 - ECB: `https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml`, matching `time='YYYY-MM-DD'` and `currency='USD' rate='1.1225'`.
   - The rate means 1 € = rate USD.
   - Conversion: `eurCents = Math.round(usdCents / usdPerEur)`.
-- Staleness: a US price or exchange rate older than **7 days** shows "–".
-- Singles "worth €5+" means a Cardmarket market value of **≥ 500 cents** (`SINGLES_MIN_VALUE_CENTS = 500`).
-- Tests: Vitest, DB tests on in-memory PGlite with the real migrations, **no network**.
+- Staleness: a US price or exchange rate older than 7 days shows "–".
+- Singles "worth €5+" means a Cardmarket market value of ≥ 500 cents (`SINGLES_MIN_VALUE_CENTS = 500`).
+- Tests: Vitest, DB tests on in-memory PGlite with the real migrations, no network.
 - Commits: explicit paths only (never `git add -A`). Never open or print `.env.local`.
 
 ## Review Focus
 
-1. **PokemonPriceTracker credits run out mid-run:** the step stops early, keeps the prices it already fetched, and fetches the rest tomorrow. Test: Task 3 `stops when daily credits run low`.
-2. **Two products end up with the same TCGplayer ID:** neither gets a US price. Test: Task 1 `drops a TCGplayer id that maps to two products`.
-3. **A week-old US price or exchange rate:** the US column shows "–" instead of an old number. Test: Task 4 `hides US prices older than 7 days`.
-4. **A product with no English/German offer:** it's still listed, as "no EN/DE offer yet", with its picture. Tests: Task 4 `lists products without an EN/DE offer` and Task 5 `shows a product without an offer`.
-5. **Unknown or missing tab/type parameters in the URL:** fall back to the Deals tab / all sealed types without crashing. Test: Task 5 `falls back to defaults for unknown parameters`.
+1. PokemonPriceTracker credits run out mid-run: the step stops early, keeps the prices it already fetched, and fetches the rest tomorrow. Test: Task 3 `stops when daily credits run low`.
+2. Two products end up with the same TCGplayer ID: neither gets a US price. Test: Task 1 `drops a TCGplayer id that maps to two products`.
+3. A week-old US price or exchange rate: the US column shows "–" instead of an old number. Test: Task 4 `hides US prices older than 7 days`.
+4. A product with no English/German offer: it's still listed, as "no EN/DE offer yet", with its picture. Tests: Task 4 `lists products without an EN/DE offer` and Task 5 `shows a product without an offer`.
+5. Unknown or missing tab/type parameters in the URL: fall back to the Deals tab / all sealed types without crashing. Test: Task 5 `falls back to defaults for unknown parameters`.
 
 ---
 
@@ -80,12 +80,12 @@ export function collectProductMeta(blueprints: CtBlueprint[], tracked: ReadonlyS
 ```
 
 `collectProductMeta` rules (spec §3.2 and §7.4):
-- A blueprint counts for a product only if **exactly one** of its `card_market_ids` is in `tracked`.
-- **`tcgplayerId`:**
-  - Collect the distinct non-null `tcg_player_id`s of the product's blueprints: exactly one → that ID, otherwise `null`.
+- A blueprint counts for a product only if exactly one of its `card_market_ids` is in `tracked`.
+- `tcgplayerId`:
+  - Collect the distinct non-null `tcg_player_id`s of the product's blueprints: exactly one gives that ID, otherwise `null`.
   - Then, if the same TCGplayer ID ended up on more than one product, set it to `null` on all of them.
-- **`imageUrl`:** the first non-null `safeCardTraderImageUrl(image_url)` among the product's blueprints, in ascending blueprint ID order.
-- **Output:** one entry per tracked product that had at least one counting blueprint, sorted by `cardmarketProductId`.
+- `imageUrl`: the first non-null `safeCardTraderImageUrl(image_url)` among the product's blueprints, in ascending blueprint ID order.
+- Output: one entry per tracked product that had at least one counting blueprint, sorted by `cardmarketProductId`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -294,14 +294,14 @@ usPrices?: Awaited<ReturnType<typeof ingestUsReferencePrices>> | { error: string
 ```
 
 Behaviour:
-- **`cardQuote`** reads `data.prices.market`.
-- **`sealedQuote`** reads `unopenedPrice` from `data`, which may be one object or an array; it takes the entry whose `tcgPlayerId` equals the requested ID.
-- **USD to cents:** `Math.round(usd * 100)`, with null or ≤ 0 becoming null. `dailyRemaining` is `Number(header X-RateLimit-Daily-Remaining)` or null. The client waits `delayMs` before every call after the first.
-- **`ingestUsReferencePrices`** selects products where `setKey` matches, `tcgplayerId` is not null, and kind is `sealed` OR the latest snapshot `trendCents >= 500`. It skips any that already have a row for `capturedDay = now (UTC, YYYY-MM-DD)`. It calls `sealedQuote` or `cardQuote` by kind and inserts a row when `usdCents` is not null (otherwise counts `noPrice`). After each call, if `dailyRemaining !== null && dailyRemaining < US_PRICE_MIN_REMAINING`, it sets `stoppedEarly` and stops.
-- **`runIngestion`**, per set, runs in order: Cardmarket → providers → **FX** (if `deps.fetchText`) → **US prices** (if `deps.ppt`). Each step is wrapped in its own try/catch and records `{ error }` on failure; nothing throws.
-- **`scripts/ingest.ts`** passes `fetchText: (u) => fetchText(u, {})`. It passes `ppt` only when `POKEMONPRICETRACKER_API_KEY` is set, and otherwise prints `POKEMONPRICETRACKER_API_KEY not set: skipping US prices`. It prints one line each, e.g. `  FX: 1 € = $1.1225 (2026-10-19)` and `  US prices: 87 fetched, 0 already today, 3 without price` (plus ` — stopped early (daily credits low)` when it stopped early).
-- **`.env.example`** gains `POKEMONPRICETRACKER_API_KEY=`, and the env test also asserts it's empty.
-- **README:** add a "US reference prices" paragraph explaining the free key at pokemonpricetracker.com, the variable name, and about 87 credits/day.
+- `cardQuote` reads `data.prices.market`.
+- `sealedQuote` reads `unopenedPrice` from `data`, which may be one object or an array; it takes the entry whose `tcgPlayerId` equals the requested ID.
+- USD to cents: `Math.round(usd * 100)`, with null or ≤ 0 becoming null. `dailyRemaining` is `Number(header X-RateLimit-Daily-Remaining)` or null. The client waits `delayMs` before every call after the first.
+- `ingestUsReferencePrices` selects products where `setKey` matches, `tcgplayerId` is not null, and kind is `sealed` OR the latest snapshot `trendCents >= 500`. It skips any that already have a row for `capturedDay = now (UTC, YYYY-MM-DD)`. It calls `sealedQuote` or `cardQuote` by kind and inserts a row when `usdCents` is not null (otherwise counts `noPrice`). After each call, if `dailyRemaining !== null && dailyRemaining < US_PRICE_MIN_REMAINING`, it sets `stoppedEarly` and stops.
+- `runIngestion`, per set, runs in order: Cardmarket, then providers, then FX (if `deps.fetchText`), then US prices (if `deps.ppt`). Each step is wrapped in its own try/catch and records `{ error }` on failure; nothing throws.
+- `scripts/ingest.ts` passes `fetchText: (u) => fetchText(u, {})`. It passes `ppt` only when `POKEMONPRICETRACKER_API_KEY` is set, and otherwise prints `POKEMONPRICETRACKER_API_KEY not set: skipping US prices`. It prints one line each, e.g. `  FX: 1 € = $1.1225 (2026-10-19)` and `  US prices: 87 fetched, 0 already today, 3 without price` (plus ` — stopped early (daily credits low)` when it stopped early).
+- `.env.example` gains `POKEMONPRICETRACKER_API_KEY=`, and the env test also asserts it's empty.
+- README: add a "US reference prices" paragraph explaining the free key at pokemonpricetracker.com, the variable name, and about 87 credits/day.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -413,13 +413,13 @@ export function getSectionCounts(db: Db, setKey: string): Promise<{ singles: num
 ```
 
 Rules (spec §4 and §7):
-- **Offer candidates:** listings with `available`, `language in ('en','de')`, `currency = 'EUR'`; for singles also `condition in ('mint','near_mint')`.
-- **`offer`:** the candidate with the lowest `priceCents` (ties broken by lowest listing id). Score it with `scoreListing` on the product's benchmark (`reverseHolo: listing.isReverseHolo`, `kind`), then `markStaleListing`.
-- **`offerCount`:** the number of candidates.
-- **`benchmark`:** `assessBenchmark` on the product's latest snapshot (all-null snapshot when none), with `reverseHolo: false`.
-- **`us`:** taken from the product's newest `usReferencePrices` row and the newest `fxRates` row. It is null when either is missing, when the price's `capturedAt` is older than 7 days before `now`, or when the rate's `rateDate` is older than 7 days before `now`. Otherwise `eurCents = Math.round(usdCents / usdPerEur)`.
-- **Singles:** keep only those with `benchmark.valueCents >= 500` unless `allSingles`. Sort by `benchmark.valueCents` descending (nulls last), then by name.
-- **Sealed:** filter by `sealedType` when given. Sort by `SEALED_TYPES` order, then by value descending (nulls last), then by name.
+- Offer candidates: listings with `available`, `language in ('en','de')`, `currency = 'EUR'`; for singles also `condition in ('mint','near_mint')`.
+- `offer`: the candidate with the lowest `priceCents` (ties broken by lowest listing id). Score it with `scoreListing` on the product's benchmark (`reverseHolo: listing.isReverseHolo`, `kind`), then `markStaleListing`.
+- `offerCount`: the number of candidates.
+- `benchmark`: `assessBenchmark` on the product's latest snapshot (all-null snapshot when none), with `reverseHolo: false`.
+- `us`: taken from the product's newest `usReferencePrices` row and the newest `fxRates` row. It is null when either is missing, when the price's `capturedAt` is older than 7 days before `now`, or when the rate's `rateDate` is older than 7 days before `now`. Otherwise `eurCents = Math.round(usdCents / usdPerEur)`.
+- Singles: keep only those with `benchmark.valueCents >= 500` unless `allSingles`. Sort by `benchmark.valueCents` descending (nulls last), then by name.
+- Sealed: filter by `sealedType` when given. Sort by `SEALED_TYPES` order, then by value descending (nulls last), then by name.
 
 - [ ] **Step 1: Write the failing tests** (`src/deals/sections.test.ts`, PGlite)
 
@@ -523,11 +523,11 @@ export function SectionTable(props: { section: 'singles' | 'sealed'; rows: Secti
 ```
 
 Exact copy and behaviour:
-- **Tabs:** links `?tab=deals` / `?tab=singles` / `?tab=sealed` labelled `Deals 5`, `Singles 52`, `Sealed 35` (the number goes in its own span). The active tab has `aria-current="page"`. `Slabs · soon` is a non-link `<span aria-disabled="true">`. The tabs sit in a `<nav aria-label="Sections">` and use gold for the active tab, as in the mockup.
-- **Singles toolbar:** chips `Worth €5+` (→ `?tab=singles`) and `All singles` (→ `?tab=singles&all=1`), with the active one highlighted. Right side: `Sorted by: market value`.
-- **Sealed toolbar:** chips `All` (→ `?tab=sealed`), then one chip per `SEALED_TYPES` entry except `other` (→ `?tab=sealed&type=<key>`).
-- **Header row:** for singles `Card · Market value · US English-only · Cheapest EN/DE (Near Mint) · Difference · Offers`; for sealed `Product · Market value · US English-only · Cheapest EN/DE · Difference · Offers`.
-- **Row:**
+- Tabs: links `?tab=deals` / `?tab=singles` / `?tab=sealed` labelled `Deals 5`, `Singles 52`, `Sealed 35` (the number goes in its own span). The active tab has `aria-current="page"`. `Slabs · soon` is a non-link `<span aria-disabled="true">`. The tabs sit in a `<nav aria-label="Sections">` and use gold for the active tab, as in the mockup.
+- Singles toolbar: chips `Worth €5+` (linking to `?tab=singles`) and `All singles` (linking to `?tab=singles&all=1`), with the active one highlighted. Right side: `Sorted by: market value`.
+- Sealed toolbar: chips `All` (linking to `?tab=sealed`), then one chip per `SEALED_TYPES` entry except `other` (linking to `?tab=sealed&type=<key>`).
+- Header row: for singles `Card · Market value · US English-only · Cheapest EN/DE (Near Mint) · Difference · Offers`; for sealed `Product · Market value · US English-only · Cheapest EN/DE · Difference · Offers`.
+- Row:
   - `CardImage` (alt = product name, width 44 px)
   - the title from `splitProductName`, with the detail (singles) or the sealed type label (sealed) underneath
   - the market value `formatEuro(benchmark.valueCents)`, or `–`
@@ -535,14 +535,14 @@ Exact copy and behaviour:
   - the offer cell: `formatEuro(priceCents)` + small `EN · PT` (language upper-cased · seller country), or `no EN/DE offer yet`
   - the difference pill: with `d = offer.score.discountPct`, show `−${formatPct(d)}` (green) when `d >= 0`, `+${formatPct(-d)}` (red) when `d < 0`, and `–` when null
   - the offer count
-- **Glow:** a row glows (mint ring) when `offer?.score.isDeal`.
-- **Row link:** a row with an offer is an `<a href={offer.url} target="_blank" rel="noopener noreferrer" aria-label="View {title} on CardTrader">`. A row without an offer is a `<div>`.
-- **Empty table:** `No products in this section yet.`
-- **`page.tsx`:**
+- Glow: a row glows (mint ring) when `offer?.score.isDeal`.
+- Row link: a row with an offer is an `<a href={offer.url} target="_blank" rel="noopener noreferrer" aria-label="View {title} on CardTrader">`. A row without an offer is a `<div>`.
+- Empty table: `No products in this section yet.`
+- `page.tsx`:
   - `export default async function Home({ searchParams }: PageProps<'/'>)` passes `searchParams` into `Feed` (don't await outside Suspense).
   - `Feed` awaits `connection()`, then `parseDashboardParams(await searchParams)`, and loads the deals, stats and section counts.
   - It loads `getSectionRows` only for the active tab (singles/sealed).
-  - It renders TopBar → StatsRow → SectionTabs → the active content: `DealFeed` for deals, otherwise `SectionTable`.
+  - It renders TopBar, StatsRow, SectionTabs, then the active content: `DealFeed` for deals, otherwise `SectionTable`.
 
 - [ ] **Step 1: Write the failing tests**
 

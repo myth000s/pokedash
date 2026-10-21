@@ -29,7 +29,7 @@ Effects are CSS-only and are switched off under `prefers-reduced-motion`.
   - gold `#ffd166`, mint `#06d6a0`
   - CTA gradient `#ffd166 → #f8a14a`
   - holo conic `#4cc9f0, #b15cff, #f85888, #ffd166, #06d6a0`
-- Fonts: **Russo One** (headings and big numbers) and **Chakra Petch** (body), loaded with `next/font/google`. They replace Geist.
+- Fonts: Russo One (headings and big numbers) and Chakra Petch (body), loaded with `next/font/google`. They replace Geist.
 - Every animation (holo border, picture tilt and foil, live-dot pulse) stops under `@media (prefers-reduced-motion: reduce)`.
 - Accessibility: WCAG AA contrast, visible focus rings, links and buttons at least 44 px tall, picture `alt` = product name, savings always carry text, no emoji icons.
 - No official Pokémon logos or branding. The wordmark is the text "pokedash".
@@ -40,11 +40,11 @@ Effects are CSS-only and are switched off under `prefers-reduced-motion`.
 
 ## Review Focus
 
-1. **A picture that fails to load** (404, blocked) should switch to the placeholder without shifting the layout. Test: Task 4 `falls back to the placeholder when the picture fails to load`.
-2. **A picture link from anywhere but CardTrader over https** must never be stored or rendered. Test: Task 1 `rejects unsafe picture links`.
-3. **Exactly one deal:** show only the hero, with no empty "All deals" section. Test: Task 4 `shows only the hero when there is one deal`.
-4. **A fresh database** (nothing ingested) gives stats of 0 and "–" instead of crashing. Tests: Task 2 `returns zeros and nulls for an empty database` and Task 3 `shows dashes when nothing is known yet`.
-5. **Listings and products from another set** are not counted in the stats. Test: Task 2 `ignores products and listings from other sets`.
+1. A picture that fails to load (404, blocked) should switch to the placeholder without shifting the layout. Test: Task 4 `falls back to the placeholder when the picture fails to load`.
+2. A picture link from anywhere but CardTrader over https must never be stored or rendered. Test: Task 1 `rejects unsafe picture links`.
+3. Exactly one deal: show only the hero, with no empty "All deals" section. Test: Task 4 `shows only the hero when there is one deal`.
+4. A fresh database (nothing ingested) gives stats of 0 and "–" instead of crashing. Tests: Task 2 `returns zeros and nulls for an empty database` and Task 3 `shows dashes when nothing is known yet`.
+5. Listings and products from another set are not counted in the stats. Test: Task 2 `ignores products and listings from other sets`.
 
 ---
 
@@ -116,11 +116,11 @@ Expected: FAIL. `safeCardTraderImageUrl` is not exported, and `imageUrl` is unde
 
 - [ ] **Step 3: Implement**
 
-- **`safeCardTraderImageUrl`:** return the string only if it parses with `new URL()`, `protocol === 'https:'` and `hostname` is exactly `cardtrader.com` or `www.cardtrader.com`. Otherwise return `null`.
-- **`normalizeCtProduct`:** sets `imageUrl: safeCardTraderImageUrl(blueprint.image_url)`.
-- **Schema:** add `imageUrl: text('image_url')` to `listings`, then run `npm run db:generate` (expect one new file `drizzle/0001_*.sql` that adds the column).
-- **`ingestListings`:** add `imageUrl: l.imageUrl` to `values`, so it's set on insert and updated on conflict.
-- **`getDealFeed`:** maps `imageUrl: l.imageUrl`.
+- `safeCardTraderImageUrl`: return the string only if it parses with `new URL()`, `protocol === 'https:'` and `hostname` is exactly `cardtrader.com` or `www.cardtrader.com`. Otherwise return `null`.
+- `normalizeCtProduct`: sets `imageUrl: safeCardTraderImageUrl(blueprint.image_url)`.
+- Schema: add `imageUrl: text('image_url')` to `listings`, then run `npm run db:generate` (expect one new file `drizzle/0001_*.sql` that adds the column).
+- `ingestListings`: add `imageUrl: l.imageUrl` to `values`, so it's set on insert and updated on conflict.
+- `getDealFeed`: maps `imageUrl: l.imageUrl`.
 
 - [ ] **Step 4: Run tests, typecheck**
 
@@ -159,7 +159,7 @@ export function getFeedStats(db: Db, setKey: string): Promise<FeedStats>
 
 - [ ] **Step 1: Write the failing tests**
 
-In `feed.test.ts`, **replace** `sorts by discount, biggest first` with:
+In `feed.test.ts`, replace `sorts by discount, biggest first` with:
 
 ```ts
 it('sorts by euro saving, biggest first', async () => {
@@ -300,7 +300,7 @@ Expected: FAIL. The new modules and exports are missing.
 
 - [ ] **Step 3: Implement the theme**
 
-**`globals.css`:**
+`globals.css`:
 - Set `:root { color-scheme: dark; }`.
 - Put the tokens from Global Constraints under `@theme`.
 - `body` gets `#080a17` with the three radial glows, text `#e9ecff`, and `font-family: var(--font-sans)`.
@@ -312,29 +312,29 @@ Expected: FAIL. The new modules and exports are missing.
 - Add one `@media (prefers-reduced-motion: reduce)` block that stops all three.
 - Remove the old light/dark `:root` variables.
 
-**`layout.tsx`:** load `Russo_One` (weight `'400'`, `variable: '--font-russo'`) and `Chakra_Petch` (weights `'400','500','600','700'`, `variable: '--font-chakra'`) instead of Geist. In `@theme`, `--font-display: var(--font-russo)` and `--font-sans: var(--font-chakra)`.
+`layout.tsx`: load `Russo_One` (weight `'400'`, `variable: '--font-russo'`) and `Chakra_Petch` (weights `'400','500','600','700'`, `variable: '--font-chakra'`) instead of Geist. In `@theme`, `--font-display: var(--font-russo)` and `--font-sans: var(--font-chakra)`.
 
 - [ ] **Step 4: Implement the shell components and the page**
 
-**`TopBar`:**
+`TopBar`:
 - an `h1` wordmark "pokedash" in the holo gradient (clipped text)
 - a chip `Set: {setName}`
 - on the right: a `live-dot` plus `Live · checked {formatAge}`, or `Not checked yet`
 
-**`StatsRow`:** 5 panel tiles, each with a small uppercase label and a big Russo One value:
-- **Best saving:** gold, `formatEuro`, or `–` when null
-- **Listings checked / Products tracked:** `formatCount`
-- **Market values:** `formatFreshness`
+`StatsRow`: 5 panel tiles, each with a small uppercase label and a big Russo One value:
+- Best saving: gold, `formatEuro`, or `–` when null
+- Listings checked / Products tracked: `formatCount`
+- Market values: `formatFreshness`
 
-**`FeedSkeleton`:** placeholder blocks shaped like the stats row, the hero and 4 tiles, pulsing (static under reduced motion), plus a visually hidden "Loading deals…".
+`FeedSkeleton`: placeholder blocks shaped like the stats row, the hero and 4 tiles, pulsing (static under reduced motion), plus a visually hidden "Loading deals…".
 
-**`page.tsx`:**
+`page.tsx`:
 - `Feed` loads `getDealFeed(db, { now })` and `getFeedStats(db, TRACKED_SETS[0].key)` in parallel.
 - It renders, in order: `TopBar` (setName `TRACKED_SETS[0].name`, `stats.lastCheckedAt`), then `StatsRow` (dealCount = `deals.length`, bestSavingCents = `deals[0]?.score.discountCents ?? null`), then the existing `DealFeed` (with `lastCheckedAt={stats.lastCheckedAt}`).
 - The `<Suspense>` fallback is `FeedSkeleton`.
 - The `main` container is `max-w-7xl`.
 
-**`error.tsx`:** restyle it as a dark panel with a gold CTA-gradient button. The copy stays the same.
+`error.tsx`: restyle it as a dark panel with a gold CTA-gradient button. The copy stays the same.
 
 - [ ] **Step 5: Run tests, typecheck, lint, build**
 
@@ -360,14 +360,14 @@ git commit -m "feat: aurora theme, fonts, top bar, stats row and loading skeleto
 **Interfaces:**
 - Consumes: `DealView` (with `imageUrl`, Task 1); `formatEuro`, `formatPct`, `formatAge`; `DEFAULT_DEAL_SETTINGS.minDiscountPct`; the CSS classes `holo-ring` and `holo-tilt` (Task 3).
 - Produces:
-  - `splitProductName(name: string): { title: string; detail: string | null }`. If the name ends with `]`, `detail` is the text inside the **last** `[...]` group and `title` is everything before it, trimmed. Otherwise `title = name` and `detail = null`.
+  - `splitProductName(name: string): { title: string; detail: string | null }`. If the name ends with `]`, `detail` is the text inside the last `[...]` group and `title` is everything before it, trimmed. Otherwise `title = name` and `detail = null`.
   - `CardImage(props: { src: string | null; alt: string; className?: string })`: `'use client'`, a 5:7 box. With a picture it shows `<img loading="lazy" decoding="async">`. Without one, or after `onError`, it shows a placeholder `<div role="img" aria-label={alt}>` holding the first letter of `alt` on a dimmed holo gradient.
   - `HeroDeal(props: { deal: DealView; now: Date })`, `DealTile(props: { deal: DealView; now: Date })`.
   - `DealFeed(props: { deals: DealView[]; now: Date; lastCheckedAt: Date | null })`: same props as today.
 
 Exact copy:
 
-**Hero** (`holo-ring` wrapper):
+Hero (`holo-ring` wrapper):
 - label `Best deal right now`
 - an `h2` with `title`
 - a subline: `[detail, kind === 'sealed' ? 'Sealed' : 'Single'].filter(Boolean).join(' · ')`
@@ -380,7 +380,7 @@ Exact copy:
 - warnings except "Shipping not included", in amber
 - the link `View on {marketplace label}` (new tab, `rel="noopener noreferrer"`)
 
-**Tile:** the whole tile is an `<a>` with `aria-label="View {title} on {marketplace label}"` (new tab). It contains:
+Tile: the whole tile is an `<a>` with `aria-label="View {title} on {marketplace label}"` (new tab). It contains:
 - the picture (`holo-tilt`)
 - an `h3` with `title`
 - a meta line: `[LANG, condition label, sellerCountry, isReverseHolo ? 'Reverse Holo' : null].filter(Boolean).join(' · ')`
@@ -390,7 +390,7 @@ Exact copy:
 - the confidence label only when it isn't `high`
 - warnings except "Shipping not included"
 
-**DealFeed:**
+DealFeed:
 - If `deals` is empty, show a panel with `No deals right now.`, then `Last checked {age}` or `No listings have been checked yet.`, then `A deal needs at least {formatPct(DEFAULT_DEAL_SETTINGS.minDiscountPct)} below market value.`
 - Otherwise show `HeroDeal(deals[0])`. When there are more deals, add a section headed `All deals` with the label `Sorted by: biggest € saving` and a grid of `DealTile` for `deals.slice(1)`: 1 column, `sm:` 2, `lg:` 3, `xl:` 4.
 
@@ -469,7 +469,7 @@ Expected: FAIL. The new modules are missing and the copy is still old.
 
 Follow the copy above and the mockup's proportions:
 - hero grid: picture ~200 px | details | price block ~230 px
-- radius 14–18 px, panels `bg-white/6` with `border-white/13`
+- radius 14 to 18 px, panels `bg-white/6` with `border-white/13`
 - the saving pill on mint: dark text on `#06d6a0` in the hero, a mint outline pill on tiles
 - the CTA uses the gold gradient
 - long names use `line-clamp-2`

@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-19-pokedash-design.md`
 
-This plan covers **slice 1 only** (spec §10). Slices 2–6 get their own plans.
+This plan covers slice 1 only (spec §10). Slices 2 to 6 get their own plans.
 
 ## Global Constraints
 
@@ -27,18 +27,18 @@ This plan covers **slice 1 only** (spec §10). Slices 2–6 get their own plans.
 
 ## Review Focus
 
-1. **Different products with the same name** (three Cardmarket products named `Mew [Psychic | 30C]`, worth €0.23, €2,264.21 and €3,160.53). A listing must get the market value of the product with its ID, never one picked by name. Tests: Task 4 `keeps same-name products distinct`, Task 6 `picks the right product when names collide`.
-2. **A CardTrader offer with no language property** must be skipped with `Missing language`, never stored as English. Test: Task 6 `skips an offer without a language instead of assuming English`.
-3. **A provider fails mid-run.** Existing listings must stay available, and the other sources still run. Tests: Task 7 `leaves listings untouched when the provider fails`, Task 10 `keeps going when one provider fails`.
-4. **A broken or partial Cardmarket download** must fail before writing, and yesterday's products and snapshots must stay intact. Test: Task 5 `keeps previous data when a download is broken`.
-5. **The lowest asking price is never the market value** (the ETB's `low` is €89.90, its `trend` €132.95). Test: Task 1 `never uses the lowest asking price`.
+1. Different products with the same name (three Cardmarket products named `Mew [Psychic | 30C]`, worth €0.23, €2,264.21 and €3,160.53). A listing must get the market value of the product with its ID, never one picked by name. Tests: Task 4 `keeps same-name products distinct`, Task 6 `picks the right product when names collide`.
+2. A CardTrader offer with no language property must be skipped with `Missing language`, never stored as English. Test: Task 6 `skips an offer without a language instead of assuming English`.
+3. A provider fails mid-run. Existing listings must stay available, and the other sources still run. Tests: Task 7 `leaves listings untouched when the provider fails`, Task 10 `keeps going when one provider fails`.
+4. A broken or partial Cardmarket download must fail before writing, and yesterday's products and snapshots must stay intact. Test: Task 5 `keeps previous data when a download is broken`.
+5. The lowest asking price is never the market value (the ETB's `low` is €89.90, its `trend` €132.95). Test: Task 1 `never uses the lowest asking price`.
 
 ---
 
 ### Task 1: Project setup and market-value assessment
 
 **Files:**
-- Delete: `README.md` (it only contains `# pokedash`. `create-next-app` refuses to run in a folder that has one, and it writes a new one.)
+- Delete: `README.md` (it only contains `# pokedash`; `create-next-app` refuses to run in a folder that has one, and it writes a new one.)
 - Create (scaffold): Next.js app in the repo root
 - Create: `vitest.config.mts`, `test/setup.ts`, `.env.example`
 - Modify: `.gitignore` (add `!.env.example`)
