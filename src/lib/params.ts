@@ -23,7 +23,7 @@ function one(v: string | string[] | undefined): string | undefined {
 export function parseDashboardParams(sp: Record<string, string | string[] | undefined>): DashboardParams {
   const tab: DashboardTab = sp.tab === 'singles' || sp.tab === 'sealed' ? sp.tab : 'deals';
   const sealedType = SEALED_TYPES.find((t) => t.key === sp.type)?.key ?? null;
-  const q = (one(sp.q) ?? '').trim().slice(0, MAX_Q).trim();
+  const q = Array.from((one(sp.q) ?? '').toWellFormed().trim()).slice(0, MAX_Q).join('').trim();
   const langRaw = one(sp.lang);
   const lang = langRaw === 'en' || langRaw === 'de' ? langRaw : null;
   const kindRaw = one(sp.kind);

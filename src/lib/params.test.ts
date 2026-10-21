@@ -20,6 +20,13 @@ describe('parseDashboardParams', () => {
     expect(parse({ q: 'a'.repeat(10000) }).q).toHaveLength(100);
     expect(parse({ q: ['a', 'b'] }).q).toBe('');
   });
+  it('truncates q by code point and never yields lone surrogates', () => {
+    const p = parse({ q: 'a'.repeat(99) + '😀😀' });
+    expect(Array.from(p.q)).toHaveLength(100);
+    expect(() => dashboardHref(p)).not.toThrow();
+    const lone = parse({ q: 'abc\uD800' });
+    expect(() => dashboardHref(lone)).not.toThrow();
+  });
   it('ignores invalid filter values', () => {
     for (const max of ['abc', '-5', '0', '1e9', '100001', '12.5']) {
       expect(parse({ max }).maxPriceCents).toBeNull();
