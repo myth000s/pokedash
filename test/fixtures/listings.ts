@@ -13,7 +13,6 @@ export function makeListing(over: Partial<NormalizedListing> = {}): NormalizedLi
     condition: null,
     language: 'de',
     isReverseHolo: false,
-    sellerName: 'seller1',
     sellerCountry: 'DE',
     imageUrl: null,
     ...over,

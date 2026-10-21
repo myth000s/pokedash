@@ -38,7 +38,8 @@ export const ctProductSchema = z
     quantity: z.number(),
     price: z.object({ cents: z.number().int(), currency: z.string() }).loose(),
     properties_hash: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
-    user: z.object({ username: z.string(), country_code: z.string().nullish() }).loose(),
+    // Only the country is used; the seller name is neither required nor stored (data minimisation).
+    user: z.object({ country_code: z.string().nullish() }).loose(),
     graded: z.boolean().nullish(),
     on_vacation: z.boolean().nullish(),
     bundle_size: z.number().nullish(),

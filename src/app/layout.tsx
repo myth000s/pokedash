@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Russo_One, Chakra_Petch } from "next/font/google";
+import { SiteFooter } from "@/components/SiteFooter";
 import "./globals.css";
 
 const russo = Russo_One({
@@ -17,6 +18,7 @@ const chakra = Chakra_Petch({
 export const metadata: Metadata = {
   title: "pokedash",
   description: "Pokémon TCG deals against Cardmarket market values",
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -27,7 +29,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${russo.variable} ${chakra.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <SiteFooter />
+      </body>
     </html>
   );
 }

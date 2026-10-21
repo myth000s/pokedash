@@ -21,7 +21,7 @@ export interface NormalizedListing {
   marketplace: Marketplace; externalId: string; cardmarketProductId: number;
   title: string; url: string; priceCents: number; currency: string;
   shippingCents: number | null; condition: Condition | null; language: string | null;
-  isReverseHolo: boolean; sellerName: string | null; sellerCountry: string | null;
+  isReverseHolo: boolean; sellerCountry: string | null;
   imageUrl: string | null;
 }
 

@@ -4,9 +4,9 @@ These are what remained after slice 1's final review (merged 2026-10-19). None o
 
 ## Before scheduled ingestion (slice 6)
 - **`fetchJson` timeouts.** Add a timeout around the body read too (`await res.json()` sits outside the try, so a slow body throws an unwrapped AbortError without retrying). Release non-OK response bodies before retrying. An empty `Retry-After` header currently means a 0 s wait.
-- **Run lock.** Prevent two ingests from overlapping. `ingestListings` reads existing rows outside its transaction, so overlapping runs could write duplicate history rows.
+- **Run lock.** ~~Prevent two ingests from overlapping. `ingestListings` reads existing rows outside its transaction, so overlapping runs could write duplicate history rows.~~ Resolved on branch `feat/online`: both ingest workflows share the GitHub Actions concurrency group `ingest`.
 - **Indexes.** Add foreign-key indexes on `listings.product_id` and `listing_price_history.listing_id`. Batch the per-row inserts if more sets are added.
-- **Hosted Supabase.** Use `prepare: false` for the transaction pooler, plus SSL. Run `npm audit` before deploying.
+- **Hosted Supabase.** ~~Use `prepare: false` for the transaction pooler, plus SSL. Run `npm audit` before deploying.~~ Resolved on branch `feat/online`: `prepare: false` is set for the Supabase pooler, connections use `sslmode=require`, and `npm audit` reports 0 findings (CI also runs `npm audit --omit=dev --audit-level=high`). Re-run `npm audit` before each later deploy.
 
 ## When non-deals or alerts are shown (slices 3–4)
 - **Rounding.** "Only 20% below market value (needs 20%)" can appear for a 19.6% discount; consider `Math.floor`.

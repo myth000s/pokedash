@@ -69,7 +69,6 @@ export async function ingestListings(
         condition: l.condition,
         language: l.language,
         isReverseHolo: l.isReverseHolo,
-        sellerName: l.sellerName,
         sellerCountry: l.sellerCountry,
         imageUrl: l.imageUrl,
         available: true,

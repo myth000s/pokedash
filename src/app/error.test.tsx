@@ -7,7 +7,7 @@ describe('error page', () => {
   it('shows a friendly message without the error text and retries on click', () => {
     const retry = vi.fn();
     render(<ErrorPage error={new Error('password=hunter2 at db.internal')} retry={retry} />);
-    expect(screen.getByText("Couldn't load deals right now.")).toBeInTheDocument();
+    expect(screen.getByText("Couldn't load this page right now.")).toBeInTheDocument();
     expect(screen.queryByText(/hunter2/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(retry).toHaveBeenCalledTimes(1);

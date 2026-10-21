@@ -3,12 +3,13 @@ import { CT_CONDITIONS, CT_LANGUAGE_KEY, CT_REVERSE_KEY, type CtBlueprint, type 
 
 const CT_IMAGE_HOSTS = new Set(['cardtrader.com', 'www.cardtrader.com']);
 
-// Only https links on CardTrader's own host are stored; anything else becomes null.
+// Only plain https links (no credentials, no port) on CardTrader's own host are stored; anything else becomes null.
 export function safeCardTraderImageUrl(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
   try {
     const u = new URL(raw);
-    return u.protocol === 'https:' && CT_IMAGE_HOSTS.has(u.hostname) ? raw : null;
+    const plain = u.username === '' && u.password === '' && u.port === '';
+    return u.protocol === 'https:' && plain && CT_IMAGE_HOSTS.has(u.hostname) ? raw : null;
   } catch {
     return null;
   }
@@ -54,7 +55,6 @@ export function normalizeCtProduct(
       condition,
       language: language.toLowerCase(),
       isReverseHolo: p.properties_hash[CT_REVERSE_KEY] === true,
-      sellerName: p.user.username,
       sellerCountry: p.user.country_code ?? null,
       imageUrl: safeCardTraderImageUrl(blueprint.image_url),
     },
