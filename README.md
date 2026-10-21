@@ -42,15 +42,26 @@ On the first login you sign in with the starting password, set up an authenticat
 
 ## How it runs online
 
-- Vercel (Hobby, region fra1) serves the Next.js app and only reads the database.
-- Supabase (Free, Frankfurt) holds the Postgres database and the logins. You log in with a password plus a code from an authenticator app (TOTP). Nobody can sign up on their own: the owner creates accounts with a script, and pokedash sends no emails.
-- GitHub Actions fetches the data on a schedule: the `ingest-listings` workflow every 30 minutes, the `ingest-daily` workflow once a day (Cardmarket values, US prices, cleanup and a database size check). The two share a concurrency group, so they never run at the same time.
-- The database has two roles. `pokedash_app` can only read; Vercel connects with it through Supabase's transaction pooler (port 6543). `pokedash_ingest` can read and write; GitHub Actions connects with it through the session pooler (port 5432). On Supabase the pooler user names carry a suffix: `pokedash_app.<project-ref>` and `pokedash_ingest.<project-ref>`.
-- Migrations run from the owner's PC as the `postgres` user, never from Vercel or GitHub.
+| Part | Service | What it does |
+|---|---|---|
+| Website | Vercel (Hobby, region fra1) | Serves the Next.js app. It only reads the database. |
+| Database and logins | Supabase (Free, Frankfurt) | Holds the Postgres database and the accounts. You log in with a password plus a code from an authenticator app (TOTP). |
+| Data updates | GitHub Actions | `ingest-listings` runs every 30 minutes; `ingest-daily` runs once a day (Cardmarket values, US prices, cleanup and a database size check). They share a concurrency group, so they never run at the same time. |
+
+Nobody can sign up on their own: the owner creates accounts with a script, and pokedash sends no emails.
+
+The database has two roles:
+
+| Role | Rights | Used by | Connection |
+|---|---|---|---|
+| `pokedash_app` | read only | Vercel | transaction pooler, port 6543 |
+| `pokedash_ingest` | read and write | GitHub Actions | session pooler, port 5432 |
+
+On Supabase the pooler user names carry a suffix: `pokedash_app.<project-ref>` and `pokedash_ingest.<project-ref>`. Migrations run from the owner's PC as the `postgres` user, never from Vercel or GitHub.
 
 ## Go-live runbook
 
-Do these steps in order. You click through each provider's website yourself and type every password and key yourself; never paste one into a chat, an issue or a commit. The menu names in the dashboards can differ slightly from the ones below.
+Do these steps in order. You click through each provider's website yourself and type every password and key yourself. Never paste one into a chat, an issue or a commit. The menu names in the dashboards can differ slightly from the ones below.
 
 ### 1. Supabase project
 

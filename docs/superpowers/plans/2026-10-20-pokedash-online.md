@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Put pokedash online as a private, invite-only web service. It needs password + TOTP login, automatic scheduled ingestion, hardened security, and German legal pages, all on free hosting.
+**Goal:** Put pokedash online as a private, invite-only web service. It needs password and TOTP login, automatic scheduled ingestion, hardened security, and German legal pages, all on free hosting.
 
 **Architecture:**
-- **Hosting:** Next.js 16 on Vercel (fra1). Supabase Free (Frankfurt) provides Postgres and Auth. GitHub Actions runs the ingest on a schedule.
-- **Auth:** all Supabase Auth calls run on the server: server actions, server components, and `proxy`, through `@supabase/ssr` with HTTP-only cookies. The browser only ever talks to pokedash itself.
-- **Access control:** data pages and the image proxy call one `requireAal2()` / `getAuthState()` check inside the request-time part of each page.
-- **Database:** the app reads through a SELECT-only Postgres role. The ingest writes through its own role. RLS policies cover only those two roles, so the Supabase Data API exposes nothing.
+- Hosting: Next.js 16 on Vercel (fra1). Supabase Free (Frankfurt) provides Postgres and Auth. GitHub Actions runs the ingest on a schedule.
+- Auth: all Supabase Auth calls run on the server: server actions, server components, and `proxy`, through `@supabase/ssr` with HTTP-only cookies. The browser only ever talks to pokedash itself.
+- Access control: data pages and the image proxy call one `requireAal2()` / `getAuthState()` check inside the request-time part of each page.
+- Database: the app reads through a SELECT-only Postgres role. The ingest writes through its own role. RLS policies cover only those two roles, so the Supabase Data API exposes nothing.
 
 **Tech Stack:** Next.js 16.4.2 (App Router, `cacheComponents`), React 19, TypeScript strict, Tailwind v4, Drizzle ORM + postgres-js, PGlite + Vitest 5 for tests, `@supabase/ssr` 0.12.x + `@supabase/supabase-js` 2.118.x, GitHub Actions, Vercel.
 
@@ -24,7 +24,7 @@
 - Add no paid service, no analytics, no third-party scripts, no client-side Supabase client, and no `NEXT_PUBLIC_*` secret.
 
 **Login and access**
-- Every page and route requires a session at **AAL2**, except:
+- Every page and route requires a session at AAL2, except:
   - `/login`, `/impressum`, `/datenschutz` (public)
   - `/mfa` (requires a session at AAL1)
 - `/account/password` requires AAL2.
@@ -70,21 +70,21 @@
 
 ## Review Focus
 
-1. **Hostile image URLs.** `src` values like:
+1. Hostile image URLs. `src` values like:
    - `https://cardtrader.com.evil.example/x.jpg`
    - `http://cardtrader.com/x.jpg`
    - `https://user:pw@cardtrader.com/x.jpg`
    - `https://cardtrader.com:8443/x.jpg`
 
    Also an upstream redirect to another host, an `image/svg+xml` response, and a body over 2 MB with no `Content-Length`. Each must be refused without passing bytes through. Pinned in Task 10.
-2. **Stale or broken session.**
+2. Stale or broken session.
    - An expired or invalid token, or `getClaims` returning an error, must count as anonymous: redirect to `/login`, or 401 for `/api/*`. It must never become an error page that leaks details. Pinned in Tasks 6 and 7.
    - A stale tab submitting a server action after sign-out gets a redirect to `/login`. Pinned in Task 8.
-3. **Missing configuration fails closed.**
+3. Missing configuration fails closed.
    - A Preview deployment, or Production with `SUPABASE_URL` or `SUPABASE_PUBLISHABLE_KEY` unset, must show the login page with "Login is not available right now.", never data and never a stack trace. Pinned in Tasks 6 and 8.
    - The env check runs at server start. It throws on Vercel Production when a value is missing and names only the variable names. Pinned in Task 5.
-4. **Interrupted MFA enrolment.** A user who scanned the QR code but closed the tab before confirming must be able to start again. Leftover unverified TOTP factors are removed before a new enrolment. Pinned in Task 9.
-5. **Login input.**
+4. Interrupted MFA enrolment. A user who scanned the QR code but closed the tab before confirming must be able to start again. Leftover unverified TOTP factors are removed before a new enrolment. Pinned in Task 9.
+5. Login input.
    - `" Friend@Example.COM "` is trimmed and lower-cased.
    - A wrong password and an unknown email give the identical message "Email or password is wrong."
    - A Supabase rate-limit error (HTTP 429) gives "Too many attempts. Wait a few minutes and try again."
@@ -97,7 +97,7 @@
 
 `npm audit` reports 9 findings today, all in dev tools:
 - `drizzle-kit` pulls in old `esbuild` through `@esbuild-kit/core-utils`.
-- `eslint-config-next` pulls in `@next/eslint-plugin-next` → `fast-glob` → `micromatch` → `braces`. GHSA-vfj7-8cjw-p6xm affects every braces version, and none has a fix.
+- `eslint-config-next` pulls in `@next/eslint-plugin-next`, which pulls in `fast-glob`, then `micromatch`, then `braces`. GHSA-vfj7-8cjw-p6xm affects every braces version, and none has a fix.
 
 The fix:
 - Override esbuild for the drizzle-kit chain.
@@ -360,10 +360,10 @@ Every workflow sets `permissions: contents: read` at the top level (CodeQL adds 
 
 | Workflow | Triggers | Settings | Runs |
 |---|---|---|---|
-| `ci.yml` | `pull_request`, `push` to `main` | — | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm audit --omit=dev --audit-level=high` |
+| `ci.yml` | `pull_request`, `push` to `main` | none | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm audit --omit=dev --audit-level=high` |
 | `ingest-listings.yml` | `schedule: cron '5,35 * * * *'`, `workflow_dispatch` | `concurrency: { group: ingest, cancel-in-progress: false }`, `timeout-minutes: 15` | `npm run ingest -- --listings` |
 | `ingest-daily.yml` | `schedule: cron '20 1 * * *'`, `workflow_dispatch` | same concurrency and timeout | `npm run ingest -- --daily` |
-| `codeql.yml` | `push`/`pull_request` on `main`, weekly `schedule` | — | `github/codeql-action` `init` (`languages: javascript-typescript`) + `analyze` |
+| `codeql.yml` | `push`/`pull_request` on `main`, weekly `schedule` | none | `github/codeql-action` `init` (`languages: javascript-typescript`) + `analyze` |
 
 The ingest workflows map the env vars: `DATABASE_URL: ${{ secrets.INGEST_DATABASE_URL }}`, `CARDTRADER_TOKEN: ${{ secrets.CARDTRADER_TOKEN }}`, and `POKEMONPRICETRACKER_API_KEY: ${{ secrets.POKEMONPRICETRACKER_API_KEY }}` (daily only).
 
@@ -399,7 +399,7 @@ git commit -m "ci: CI, scheduled ingest, CodeQL, Dependabot, Frankfurt region"
   - `missingServerEnv(env: Record<string, string | undefined>): string[]`
   - `checkServerEnv(env: Record<string, string | undefined>): void`. It throws `Error('Missing server env: A, B')` when `env.VERCEL_ENV === 'production'` and something is missing. Otherwise it only `console.warn`s the same names. It never prints values.
 
-**CSP decision.** Nonce-based CSP is incompatible with the prerendered static shell (see `content-security-policy.md`, "Static vs Dynamic Rendering"). So `script-src` allows `'unsafe-inline'` for Next's inline bootstrap scripts. The remaining XSS barrier is that no code renders raw HTML. `test/no-raw-html.test.ts` pins that.
+CSP decision. Nonce-based CSP is incompatible with the prerendered static shell (see `content-security-policy.md`, "Static vs Dynamic Rendering"). So `script-src` allows `'unsafe-inline'` for Next's inline bootstrap scripts. The remaining XSS barrier is that no code renders raw HTML. `test/no-raw-html.test.ts` pins that.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -543,7 +543,7 @@ Run locally:
 1. `npx supabase stop`
 2. `npx supabase start -x realtime,storage-api,imgproxy,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor`
 3. `npx supabase status`, and copy the publishable key and secret key into `.env.local` yourself. Don't print them in logs or commits.
-4. Open `npm run dev` → `http://localhost:3000`.
+4. Run `npm run dev` and open `http://localhost:3000`.
 
 Expected: the page redirects to `/login`. A 404 is fine until Task 8.
 
@@ -946,25 +946,25 @@ Required content, German, in a readable Aurora prose panel, with `<main lang="de
 - "Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV": name and address.
 - A one-line note that this is a private, non-commercial project for a small invited circle.
 
-**`/datenschutz`** sections:
-1. **Verantwortlicher:** the imprint values.
-2. **Überblick:** the private service for invited users; no tracking, no analytics, no advertising.
-3. **Hosting (Vercel):** server logs with IP addresses, for delivery and security, Art. 6 (1) (f) GDPR. Vercel Inc., USA: EU-US Data Privacy Framework, data processing agreement.
-4. **Datenbank und Anmeldung (Supabase):** Frankfurt region. Email address (login name only; no emails are sent), password hash, authenticator factor, session data. Art. 6 (1) (b) GDPR. Data processing agreement.
-5. **Cookies:** only the technically necessary login cookies, § 25 (2) No. 2 TDDDG, so no consent banner.
-6. **Kartenbilder:** CardTrader pictures are loaded by the pokedash server; the browser makes no connection to CardTrader.
-7. **Schriftarten:** fonts are delivered locally; no connection to Google.
-8. **Marktdaten:** prices from Cardmarket, CardTrader and PokemonPriceTracker, and the ECB rate. No personal data of users; collected through GitHub Actions.
-9. **Speicherdauer:** the account until deletion on request. Logs per the providers' own retention. Write this without inventing durations.
-10. **Rechte:** Art. 15–21 GDPR, and the right to object.
-11. **Beschwerderecht:** "Die Landesbeauftragte für den Datenschutz Niedersachsen", Prinzenstraße 5, 30159 Hannover.
-12. **Stand:** Oktober 2026.
+`/datenschutz` sections:
+1. Verantwortlicher: the imprint values.
+2. Überblick: the private service for invited users; no tracking, no analytics, no advertising.
+3. Hosting (Vercel): server logs with IP addresses, for delivery and security, Art. 6 (1) (f) GDPR. Vercel Inc., USA: EU-US Data Privacy Framework, data processing agreement.
+4. Datenbank und Anmeldung (Supabase): Frankfurt region. Email address (login name only; no emails are sent), password hash, authenticator factor, session data. Art. 6 (1) (b) GDPR. Data processing agreement.
+5. Cookies: only the technically necessary login cookies, § 25 (2) No. 2 TDDDG, so no consent banner.
+6. Kartenbilder: CardTrader pictures are loaded by the pokedash server; the browser makes no connection to CardTrader.
+7. Schriftarten: fonts are delivered locally; no connection to Google.
+8. Marktdaten: prices from Cardmarket, CardTrader and PokemonPriceTracker, and the ECB rate. No personal data of users; collected through GitHub Actions.
+9. Speicherdauer: the account until deletion on request. Logs per the providers' own retention. Write this without inventing durations.
+10. Rechte: Art. 15 to 21 GDPR, and the right to object.
+11. Beschwerderecht: "Die Landesbeauftragte für den Datenschutz Niedersachsen", Prinzenstraße 5, 30159 Hannover.
+12. Stand: Oktober 2026.
 
 **`SiteFooter`:**
-- Links "Impressum" → `/impressum` and "Datenschutz" → `/datenschutz`, in muted text, 44 px tap targets.
+- "Impressum" links to `/impressum` and "Datenschutz" links to `/datenschutz`, in muted text, 44 px tap targets.
 - It reads no request data, so the static shell keeps it.
 
-**`robots.ts`:** `{ rules: { userAgent: '*', disallow: '/' } }`.
+`robots.ts`: `{ rules: { userAgent: '*', disallow: '/' } }`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1012,17 +1012,17 @@ git commit -m "feat: Impressum, Datenschutz, footer and noindex"
 - Modify: `README.md`, `docs/superpowers/notes/2026-10-19-slice-1-follow-ups.md` (mark run lock, `prepare: false` and npm audit as resolved, with this branch named)
 
 **Interfaces:**
-- Consumes: the script names, env var names and secret names from Tasks 2–11.
+- Consumes: the script names, env var names and secret names from Tasks 2 to 11.
 
 **README sections:**
 
-1. **Local setup.**
+1. Local setup.
    - Docker plus the new `supabase start -x …` command from Task 6.
    - The `.env.local` keys from `npx supabase status`.
    - `npm run user -- add you@example.com`.
    - First login with MFA.
-2. **How it runs online.** Vercel, Supabase Frankfurt, GitHub Actions schedules, and the two DB roles.
-3. **Go-live runbook (owner + Claude), in order:**
+2. How it runs online. Vercel, Supabase Frankfurt, GitHub Actions schedules, and the two DB roles.
+3. Go-live runbook (owner + Claude), in order:
    1. Supabase:
       - Create the project (Free, Frankfurt).
       - Database settings: "Enforce SSL" on.
@@ -1056,11 +1056,11 @@ git commit -m "feat: Impressum, Datenschutz, footer and noindex"
       - Redeploy after any `IMPRINT_*` change.
    6. Run the `ingest-daily` workflow once by hand.
    7. Run `npm run user:prod -- add <email>` for the owner, then for each friend. Hand over starting passwords privately. The owner enrols MFA on two devices.
-4. **Free-tier caveats.**
+4. Free-tier caveats.
    - GitHub pauses schedules after 60 days without repo activity; re-enable them in the Actions tab.
    - Supabase pauses after 7 idle days; the 30-minute ingest prevents that.
    - 500 MB database limit; the daily job alerts at 400 MB.
-5. **Lost authenticator.** The owner removes the user's factor in Supabase (Auth → Users → user → MFA), and the user re-enrols. **Forgotten password:** `npm run user:prod -- reset <email>`.
+5. Lost authenticator. The owner removes the user's factor in Supabase (Auth → Users → user → MFA), and the user re-enrols. Forgotten password: `npm run user:prod -- reset <email>`.
 6. Keep the existing sections on data sources, US prices and tests, updated where commands changed (`npm run ingest -- --listings|--daily`).
 
 - [ ] **Step 1: Write the README and update the follow-ups note**
@@ -1084,7 +1084,7 @@ git commit -m "docs: online setup, go-live runbook and free-tier caveats"
 1. Run a whole-branch code review, then the `security-review` skill on `feat/online`. Fix the findings.
 2. Push `feat/online` and open a PR only when the owner asks. CI must be green, including `npm audit --omit=dev --audit-level=high`.
 3. Walk through the README runbook together with the owner. The owner types every secret and password into the provider dashboards themselves.
-   - Order: Supabase project, migrations, role passwords, the auth retention SQL, GitHub secrets, then **merge the PR into `main`**, and only then the Vercel import.
+   - Order: Supabase project, migrations, role passwords, the auth retention SQL, GitHub secrets, then merge the PR into `main`, and only then the Vercel import.
    - Never import the repository into Vercel before the merge. Vercel deploys the production branch on import, and `main` without this branch has no login, no legal pages, no security headers and no `vercel.json`.
    - Set the Supabase Site URL to the production address before the first login.
 4. Smoke-test production:
