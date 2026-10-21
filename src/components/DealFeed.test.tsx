@@ -30,6 +30,28 @@ describe('DealFeed', () => {
     }
     expect(screen.getByRole('link', { name: 'View on CardTrader' })).toHaveAttribute('href', 'https://www.cardtrader.com/cards/1001');
   });
+  it('shows the nothing-matches panel when filters removed every deal', () => {
+    render(<DealFeed deals={[]} now={NOW} lastCheckedAt={NOW} filter={{ active: true, totalBefore: 4, clearHref: '?tab=deals' }} />);
+    expect(screen.getByText('Nothing matches your filters.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Clear filters' })).toHaveAttribute('href', '?tab=deals');
+    expect(screen.queryByText('No deals right now.')).not.toBeInTheDocument();
+  });
+  it('keeps the normal empty state when the unfiltered feed is empty', () => {
+    render(<DealFeed deals={[]} now={NOW} lastCheckedAt={NOW} filter={{ active: true, totalBefore: 0, clearHref: '?tab=deals' }} />);
+    expect(screen.getByText('No deals right now.')).toBeInTheDocument();
+    expect(screen.queryByText('Nothing matches your filters.')).not.toBeInTheDocument();
+  });
+  it('shows the result line only when filters are active', () => {
+    const f = (active: boolean) => ({ active, totalBefore: 5, clearHref: '?tab=deals' });
+    const a = render(<DealFeed deals={[deal()]} now={NOW} lastCheckedAt={NOW} filter={f(true)} />);
+    expect(screen.getByText('1 deal matches your filters')).toBeInTheDocument();
+    a.unmount();
+    const b = render(<DealFeed deals={[deal(), sneasel, deal({ listingId: 3 })]} now={NOW} lastCheckedAt={NOW} filter={f(true)} />);
+    expect(screen.getByText('3 deals match your filters')).toBeInTheDocument();
+    b.unmount();
+    render(<DealFeed deals={[deal()]} now={NOW} lastCheckedAt={NOW} filter={f(false)} />);
+    expect(screen.queryByText(/match(es)? your filters/)).not.toBeInTheDocument();
+  });
   it('shows only the hero when there is one deal', () => {
     render(<DealFeed deals={[deal()]} now={NOW} lastCheckedAt={NOW} />);
     expect(screen.queryByText('All deals')).not.toBeInTheDocument();

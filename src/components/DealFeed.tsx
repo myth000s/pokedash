@@ -3,8 +3,14 @@ import { DEFAULT_DEAL_SETTINGS } from '@/config/settings';
 import { formatAge, formatPct } from '@/lib/format';
 import { DealTile } from './DealTile';
 import { HeroDeal } from './HeroDeal';
+import { NothingMatches, ResultLine, type ResultFilter } from './FilterResult';
 
-export function DealFeed({ deals, now, lastCheckedAt }: { deals: DealView[]; now: Date; lastCheckedAt: Date | null }) {
+export function DealFeed({ deals, now, lastCheckedAt, filter }: {
+  deals: DealView[]; now: Date; lastCheckedAt: Date | null; filter?: ResultFilter;
+}) {
+  if (deals.length === 0 && filter?.active && filter.totalBefore > 0) {
+    return <NothingMatches clearHref={filter.clearHref} />;
+  }
   if (deals.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-white/25 bg-white/[0.06] p-8 text-center">
@@ -21,6 +27,7 @@ export function DealFeed({ deals, now, lastCheckedAt }: { deals: DealView[]; now
   const [best, ...rest] = deals;
   return (
     <div className="flex flex-col gap-6">
+      {filter?.active && <ResultLine count={deals.length} noun="deal" />}
       <HeroDeal deal={best} now={now} />
       {rest.length > 0 && (
         <section>

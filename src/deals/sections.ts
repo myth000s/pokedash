@@ -4,6 +4,7 @@ import type { Db } from '@/db/client';
 import { DEFAULT_DEAL_SETTINGS, type DealSettings } from '@/config/settings';
 import { assessBenchmark } from '@/scoring/benchmark';
 import { markStaleListing, scoreListing } from '@/scoring/score';
+import { matchesQuery } from '@/lib/search';
 import { byDescNullsLast, emptySnapshot, toSnapshot } from '@/deals/feed';
 import type { BenchmarkAssessment, Condition, ProductKind, ScoredListing } from '@/domain/types';
 
@@ -61,7 +62,8 @@ export interface SectionRow {
 
 export async function getSectionRows(
   db: Db,
-  opts: { section: 'singles' | 'sealed'; setKey: string; now: Date; settings?: DealSettings; allSingles?: boolean; sealedType?: SealedType },
+  opts: { section: 'singles' | 'sealed'; setKey: string; now: Date; settings?: DealSettings; allSingles?: boolean; sealedType?: SealedType;
+    query?: string; language?: 'en' | 'de' },
 ): Promise<SectionRow[]> {
   const settings = opts.settings ?? DEFAULT_DEAL_SETTINGS;
   const kind: ProductKind = opts.section === 'singles' ? 'single' : 'sealed';
@@ -76,7 +78,7 @@ export async function getSectionRows(
   const listingRows = await db.select().from(listings).where(and(
     inArray(listings.productId, ids),
     eq(listings.available, true),
-    inArray(listings.language, ['en', 'de']),
+    inArray(listings.language, opts.language ? [opts.language] : ['en', 'de']),
     eq(listings.currency, 'EUR'),
     ...(kind === 'single' ? [inArray(listings.condition, ['mint', 'near_mint'])] : []),
   ));
@@ -97,7 +99,7 @@ export async function getSectionRows(
   const [fx] = await db.select().from(fxRates).orderBy(desc(fxRates.rateDate)).limit(1);
   const fxFresh = !!fx && opts.now.getTime() - new Date(`${fx.rateDate}T00:00:00Z`).getTime() <= MAX_US_AGE_MS;
 
-  const rows: SectionRow[] = prods.map((p) => {
+  const allRows: SectionRow[] = prods.map((p) => {
     const snapshot = snapshots.get(p.id);
     const assess = (reverseHolo: boolean) =>
       assessBenchmark(snapshot ? toSnapshot(snapshot) : emptySnapshot(opts.now), {
@@ -143,6 +145,8 @@ export async function getSectionRows(
       imageUrl: p.imageUrl, benchmark, us, offer, offerCount: candidates.length,
     };
   });
+
+  const rows = opts.query ? allRows.filter((r) => matchesQuery(r.productName, opts.query!)) : allRows;
 
   if (opts.section === 'singles') {
     return rows

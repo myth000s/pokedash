@@ -20,7 +20,7 @@ beforeEach(async () => {
 });
 const seed = (...ls: Parameters<typeof makeListing>[0][]) =>
   ingestListings(db, fakeProvider('cardtrader', ls.map((l) => makeListing(l))), SET, NOW);
-const sealed = (opts: { sealedType?: 'etb' } = {}) => getSectionRows(db, { section: 'sealed', setKey: SET.key, now: NOW, ...opts });
+const sealed = (opts: { sealedType?: 'etb'; query?: string; language?: 'en' | 'de' } = {}) => getSectionRows(db, { section: 'sealed', setKey: SET.key, now: NOW, ...opts });
 
 async function etbId(): Promise<number> {
   const [p] = await db.select().from(products).where(eq(products.name, '30th Celebration Elite Trainer Box'));
@@ -57,6 +57,29 @@ describe('sections', () => {
       '30th Celebration Elite Trainer Box', '30th Celebration: Knock Out Collection', '30th Celebration Poster Collection',
     ]);
     expect(rows.every((r) => r.offer === null && r.offerCount === 0)).toBe(true);
+  });
+  it('filters rows by name query', async () => {
+    const rows = await sealed({ query: 'knock out' });
+    expect(rows.map((r) => r.productName)).toEqual(['30th Celebration: Knock Out Collection']);
+    const singles = await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW, allSingles: true, query: 'MEW' });
+    expect(singles.map((r) => r.productName)).toEqual(Array(3).fill('Mew [Psychic | 30C]'));
+  });
+  it('picks the cheapest offer in the chosen language even if another language is cheaper', async () => {
+    await seed(
+      { externalId: 'a', priceCents: 12000, language: 'de' },
+      { externalId: 'b', priceCents: 9900, language: 'en' },
+    );
+    const etb = (await sealed({ language: 'de' })).find((r) => r.productName === '30th Celebration Elite Trainer Box')!;
+    expect(etb.offer).toMatchObject({ priceCents: 12000, language: 'de' });
+    expect(etb.offerCount).toBe(1);
+  });
+  it('keeps products without an offer in the chosen language, with no offer', async () => {
+    await seed({ externalId: 'b', priceCents: 9900, language: 'en' });
+    const rows = await sealed({ language: 'de' });
+    const etb = rows.find((r) => r.productName === '30th Celebration Elite Trainer Box')!;
+    expect(etb.offer).toBeNull();
+    expect(etb.offerCount).toBe(0);
+    expect(rows).toHaveLength(3);
   });
   it('filters sealed by type', async () => {
     expect((await sealed({ sealedType: 'etb' })).map((r) => r.sealedType)).toEqual(['etb']);

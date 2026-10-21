@@ -2,7 +2,9 @@ import type { ReactNode } from 'react';
 import { SEALED_TYPES, type SealedType, type SectionRow } from '@/deals/sections';
 import { formatEuro, formatPct, formatUsd } from '@/lib/format';
 import { splitProductName } from '@/lib/names';
+import { dashboardHref, parseDashboardParams, type DashboardParams } from '@/lib/params';
 import { CardImage } from './CardImage';
+import { NothingMatches, ResultLine, type ResultFilter } from './FilterResult';
 
 const GRID = 'md:grid-cols-[44px_minmax(0,1fr)_100px_120px_150px_90px_60px]';
 
@@ -20,20 +22,23 @@ function Chip({ href, active, children }: { href: string; active: boolean; child
   );
 }
 
-function Toolbar({ section, allSingles, sealedType }: { section: 'singles' | 'sealed'; allSingles: boolean; sealedType: SealedType | null }) {
+function Toolbar({ section, allSingles, sealedType, params }: {
+  section: 'singles' | 'sealed'; allSingles: boolean; sealedType: SealedType | null; params: DashboardParams;
+}) {
+  const href = (o: Partial<DashboardParams>) => dashboardHref(params, { tab: section, allSingles: false, sealedType: null, ...o });
   return (
     <div className="mb-2.5 flex flex-wrap items-center gap-2 text-xs text-mute">
       {section === 'singles' ? (
         <>
-          <Chip href="?tab=singles" active={!allSingles}>Worth €5+</Chip>
-          <Chip href="?tab=singles&all=1" active={allSingles}>All singles</Chip>
+          <Chip href={href({})} active={!allSingles}>Worth €5+</Chip>
+          <Chip href={href({ allSingles: true })} active={allSingles}>All singles</Chip>
           <span className="ml-auto">Sorted by: market value</span>
         </>
       ) : (
         <>
-          <Chip href="?tab=sealed" active={sealedType === null}>All</Chip>
+          <Chip href={href({})} active={sealedType === null}>All</Chip>
           {SEALED_TYPES.filter((t) => t.key !== 'other').map((t) => (
-            <Chip key={t.key} href={`?tab=sealed&type=${t.key}`} active={sealedType === t.key}>{t.label}</Chip>
+            <Chip key={t.key} href={href({ sealedType: t.key })} active={sealedType === t.key}>{t.label}</Chip>
           ))}
         </>
       )}
@@ -65,7 +70,7 @@ function Difference({ discountPct }: { discountPct: number | null }) {
   );
 }
 
-function Row({ row, section }: { row: SectionRow; section: 'singles' | 'sealed' }) {
+function Row({ row, section, langLabel }: { row: SectionRow; section: 'singles' | 'sealed'; langLabel: string }) {
   const { title, detail } = splitProductName(row.productName);
   const sub = section === 'singles' ? detail : SEALED_TYPES.find((t) => t.key === row.sealedType)?.label ?? null;
   const { offer } = row;
@@ -91,13 +96,13 @@ function Row({ row, section }: { row: SectionRow; section: 'singles' | 'sealed' 
             </span>
           ) : <span className="text-mute">–</span>}
         </Cell>
-        <Cell label="Cheapest EN/DE">
+        <Cell label={`Cheapest ${langLabel}`}>
           {offer ? (
             <span>
               <span className="font-display">{formatEuro(offer.priceCents)}</span>{' '}
               <small className="text-mute">{[offer.language.toUpperCase(), offer.sellerCountry].filter(Boolean).join(' · ')}</small>
             </span>
-          ) : <span className="text-xs text-mute">no EN/DE offer yet</span>}
+          ) : <span className="text-xs text-mute">{`no ${langLabel} offer yet`}</span>}
         </Cell>
         <Cell label="Difference"><Difference discountPct={offer ? offer.score.discountPct : null} /></Cell>
         <Cell label="Offers"><span>{row.offerCount}</span></Cell>
@@ -115,16 +120,21 @@ function Row({ row, section }: { row: SectionRow; section: 'singles' | 'sealed' 
   );
 }
 
-export function SectionTable({ section, rows, allSingles, sealedType }: {
+export function SectionTable({ section, rows, allSingles, sealedType, params = parseDashboardParams({}), filter }: {
   section: 'singles' | 'sealed'; rows: SectionRow[]; allSingles: boolean; sealedType: SealedType | null;
+  params?: DashboardParams; filter?: ResultFilter;
 }) {
+  const langLabel = params.lang === 'de' ? 'DE' : params.lang === 'en' ? 'EN' : 'EN/DE';
   const heads = section === 'singles'
-    ? ['Card', 'Market value', 'US English-only', 'Cheapest EN/DE (Near Mint)', 'Difference', 'Offers']
-    : ['Product', 'Market value', 'US English-only', 'Cheapest EN/DE', 'Difference', 'Offers'];
+    ? ['Card', 'Market value', 'US English-only', `Cheapest ${langLabel} (Near Mint)`, 'Difference', 'Offers']
+    : ['Product', 'Market value', 'US English-only', `Cheapest ${langLabel}`, 'Difference', 'Offers'];
   return (
     <section>
-      <Toolbar section={section} allSingles={allSingles} sealedType={sealedType} />
-      {rows.length === 0 ? (
+      <Toolbar section={section} allSingles={allSingles} sealedType={sealedType} params={params} />
+      {filter?.active && rows.length > 0 && <ResultLine count={rows.length} noun="product" />}
+      {rows.length === 0 && filter?.active && filter.totalBefore > 0 ? (
+        <NothingMatches clearHref={filter.clearHref} />
+      ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/25 bg-white/[0.06] p-8 text-center text-sm text-mute">
           No products in this section yet.
         </div>
@@ -137,7 +147,7 @@ export function SectionTable({ section, rows, allSingles, sealedType }: {
           {/* Safari drops list semantics under list-style: none; role="list" restores them (false positive). */}
           {/* eslint-disable-next-line jsx-a11y/no-redundant-roles */}
           <ul role="list" className="m-0 flex list-none flex-col gap-1.5 p-0">
-            {rows.map((r) => <Row key={r.productId} row={r} section={section} />)}
+            {rows.map((r) => <Row key={r.productId} row={r} section={section} langLabel={langLabel} />)}
           </ul>
         </div>
       )}

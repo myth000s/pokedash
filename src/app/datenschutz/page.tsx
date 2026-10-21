@@ -41,10 +41,10 @@ export default function DatenschutzPage() {
 
       <h2>4. Datenbank und Anmeldung (Supabase)</h2>
       <p>
-        Konten und Anmeldung werden über Supabase betrieben, die Daten liegen in der Region
-        Frankfurt (eu-central-1). Konten legt ausschließlich der Betreiber an; eine
-        Selbstregistrierung gibt es nicht. Die Anmeldung erfolgt mit E-Mail-Adresse, Passwort und
-        einem Code aus einer Authenticator-App. Gespeichert werden:
+        Konten und Anmeldung laufen über Supabase, Inc. (USA); die Daten liegen in der Region
+        Frankfurt (eu-central-1). Konten lege ausschließlich ich an, eine Selbstregistrierung
+        gibt es nicht. Die Anmeldung erfolgt mit E-Mail-Adresse, Passwort und einem Code aus
+        einer Authenticator-App. Gespeichert werden:
       </p>
       <ul>
         <li>E-Mail-Adresse (nur als Anmeldename; pokedash versendet keine E-Mails)</li>
@@ -65,10 +65,9 @@ export default function DatenschutzPage() {
         unbefugtem Zugriff.
       </p>
       <p>
-        Anbieter ist Supabase, Inc. (USA); die Daten werden in der Region Frankfurt (EU)
-        gespeichert. Mit Supabase besteht ein Auftragsverarbeitungsvertrag, der
-        EU-Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO) enthält und einen möglichen
-        Zugriff aus den USA absichert.
+        Mit Supabase besteht ein Auftragsverarbeitungsvertrag mit
+        EU-Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO). Er sichert einen möglichen
+        Zugriff aus den USA ab.
       </p>
 
       <h2>5. Cookies</h2>
@@ -96,12 +95,12 @@ export default function DatenschutzPage() {
       <p>
         Die angezeigten Preise stammen aus dem öffentlichen Preisführer von Cardmarket, von
         CardTrader und PokemonPriceTracker sowie aus dem Wechselkurs der Europäischen Zentralbank.
-        Ein geplanter Job in GitHub Actions sammelt sie. Diese Daten enthalten keine
+        Ein zeitgesteuerter Job bei GitHub Actions ruft sie ab. Sie enthalten keine
         personenbezogenen Daten der Nutzerinnen und Nutzer.
       </p>
 
       <h2>9. Speicherdauer</h2>
-      <p>Ein Konto bleibt bestehen, bis der Betreiber es auf Anfrage löscht. Darüber hinaus gilt:</p>
+      <p>Ein Konto bleibt bestehen, bis ich es auf deinen Wunsch lösche. Für die übrigen Daten gilt:</p>
       <ul>
         <li>Anmelde-Cookies: bis zur Abmeldung, höchstens 400 Tage nach der letzten Nutzung.</li>
         <li>
@@ -135,8 +134,9 @@ export default function DatenschutzPage() {
       <h2>11. Beschwerderecht</h2>
       <p>
         Du hast nach Art. 77 DSGVO das Recht, dich bei einer Aufsichtsbehörde zu beschweren.
-        Zuständig ist: Der Landesbeauftragte
-        für den Datenschutz Niedersachsen, Prinzenstraße 5, 30159 Hannover.
+        Zuständig ist:
+        <br />
+        Der Landesbeauftragte für den Datenschutz Niedersachsen, Prinzenstraße 5, 30159 Hannover
       </p>
 
       <h2>12. Stand</h2>

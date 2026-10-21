@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { SectionRow } from '@/deals/sections';
 import type { ScoredListing } from '@/domain/types';
+import { parseDashboardParams } from '@/lib/params';
 import { SectionTable } from './SectionTable';
 
 function row(over: Partial<SectionRow> = {}): SectionRow {
@@ -27,6 +28,51 @@ describe('SectionTable', () => {
     expect(link).toHaveAttribute('href', 'https://www.cardtrader.com/cards/399230');
     // "Elite Trainer Boxes" is also a toolbar chip, so look for the subline inside the row
     expect(within(link).getByText('Elite Trainer Boxes')).toBeInTheDocument();
+  });
+  it('names the chosen language in the header and the no-offer text', () => {
+    const params = parseDashboardParams({ tab: 'sealed', lang: 'de' });
+    render(<SectionTable section="sealed" rows={[row({ offer: null, offerCount: 0 })]} allSingles={false} sealedType={null} params={params} />);
+    expect(screen.getByText('no DE offer yet')).toBeInTheDocument();
+    expect(screen.getAllByText('Cheapest DE').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/EN\/DE/)).toBeNull();
+  });
+  it('keeps EN/DE without a language filter', () => {
+    render(<SectionTable section="sealed" rows={[row({ offer: null, offerCount: 0 })]} allSingles={false} sealedType={null} />);
+    expect(screen.getByText('no EN/DE offer yet')).toBeInTheDocument();
+    expect(screen.getAllByText('Cheapest EN/DE').length).toBeGreaterThan(0);
+  });
+  it('keeps q and lang in the singles chips', () => {
+    const params = parseDashboardParams({ tab: 'singles', q: 'pika', lang: 'de' });
+    render(<SectionTable section="singles" rows={[]} allSingles={false} sealedType={null} params={params} />);
+    expect(screen.getByRole('link', { name: 'All singles' })).toHaveAttribute('href', '?tab=singles&q=pika&lang=de&all=1');
+    expect(screen.getByRole('link', { name: 'Worth €5+' })).toHaveAttribute('href', '?tab=singles&q=pika&lang=de');
+  });
+  it('keeps q and lang in the sealed chips', () => {
+    const params = parseDashboardParams({ tab: 'sealed', q: 'box' });
+    render(<SectionTable section="sealed" rows={[]} allSingles={false} sealedType={null} params={params} />);
+    expect(screen.getByRole('link', { name: 'All' })).toHaveAttribute('href', '?tab=sealed&q=box');
+    expect(screen.getByRole('link', { name: 'Elite Trainer Boxes' })).toHaveAttribute('href', '?tab=sealed&q=box&type=etb');
+  });
+  it('shows a result line with singular and plural when filtering', () => {
+    const filter = { active: true, totalBefore: 9, clearHref: '?tab=sealed' };
+    const a = render(<SectionTable section="sealed" rows={[row()]} allSingles={false} sealedType={null} filter={filter} />);
+    expect(screen.getByText('1 product matches your filters')).toBeInTheDocument();
+    a.unmount();
+    render(<SectionTable section="sealed" rows={[row(), row({ productId: 2 })]} allSingles={false} sealedType={null} filter={filter} />);
+    expect(screen.getByText('2 products match your filters')).toBeInTheDocument();
+  });
+  it('shows no result line without active filters', () => {
+    render(<SectionTable section="sealed" rows={[row()]} allSingles={false} sealedType={null} filter={{ active: false, totalBefore: 9, clearHref: '?tab=sealed' }} />);
+    expect(screen.queryByText(/match your filters/)).not.toBeInTheDocument();
+  });
+  it('shows the nothing-matches panel only when products existed before filtering', () => {
+    const a = render(<SectionTable section="sealed" rows={[]} allSingles={false} sealedType={null} filter={{ active: true, totalBefore: 9, clearHref: '?tab=sealed' }} />);
+    expect(screen.getByText('Nothing matches your filters.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Clear filters' })).toHaveAttribute('href', '?tab=sealed');
+    a.unmount();
+    render(<SectionTable section="sealed" rows={[]} allSingles={false} sealedType={null} filter={{ active: true, totalBefore: 0, clearHref: '?tab=sealed' }} />);
+    expect(screen.getByText('No products in this section yet.')).toBeInTheDocument();
+    expect(screen.queryByText('Nothing matches your filters.')).not.toBeInTheDocument();
   });
   it('names each row link with the full product name', () => {
     render(<SectionTable section="singles" rows={[row({ productName: 'Mew [Psychic | 30C]', kind: 'single', sealedType: null })]} allSingles={false} sealedType={null} />);
