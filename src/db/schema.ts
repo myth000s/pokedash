@@ -53,7 +53,6 @@ export const listings = pgTable(
     condition: text('condition'),
     language: text('language'),
     isReverseHolo: boolean('is_reverse_holo').notNull().default(false),
-    sellerName: text('seller_name'),
     sellerCountry: text('seller_country'),
     imageUrl: text('image_url'),
     available: boolean('available').notNull().default(true),

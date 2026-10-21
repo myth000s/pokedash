@@ -6,7 +6,7 @@ import { CardImage } from './CardImage';
 describe('CardImage', () => {
   it('shows the picture with the product name as alt text', () => {
     render(<CardImage src="https://www.cardtrader.com/x.jpg" alt="Raikou" />);
-    expect(screen.getByRole('img', { name: 'Raikou' })).toHaveAttribute('src', 'https://www.cardtrader.com/x.jpg');
+    expect(screen.getByRole('img', { name: 'Raikou' })).toHaveAttribute('src', '/api/card-image?src=' + encodeURIComponent('https://www.cardtrader.com/x.jpg'));
   });
   it('falls back to a placeholder when there is no picture', () => {
     render(<CardImage src={null} alt="Raikou" />);

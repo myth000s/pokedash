@@ -12,4 +12,19 @@ describe('.env.example', () => {
     const lines = readFileSync('.env.example', 'utf8').split(/\r?\n/);
     expect(lines).toContain('POKEMONPRICETRACKER_API_KEY=');
   });
+  it.each([
+    'SUPABASE_PUBLISHABLE_KEY',
+    'SUPABASE_SECRET_KEY',
+    'IMPRINT_NAME',
+    'IMPRINT_STREET',
+    'IMPRINT_POSTAL_CITY',
+    'IMPRINT_EMAIL',
+  ])('lists %s with an empty value', (name) => {
+    const lines = readFileSync('.env.example', 'utf8').split(/\r?\n/);
+    expect(lines).toContain(`${name}=`);
+  });
+  it('points SUPABASE_URL at the local stack', () => {
+    const lines = readFileSync('.env.example', 'utf8').split(/\r?\n/);
+    expect(lines).toContain('SUPABASE_URL=http://127.0.0.1:54321');
+  });
 });

@@ -10,9 +10,17 @@ describe('normalizeCtProduct', () => {
     expect(normalizeCtProduct(ctProduct(), ctBlueprint(), tracked)).toEqual({ listing: {
       marketplace: 'cardtrader', externalId: '777', cardmarketProductId: 909509, title: 'Mew',
       url: 'https://www.cardtrader.com/cards/1001', priceCents: 200000, currency: 'EUR', shippingCents: null,
-      condition: 'near_mint', language: 'en', isReverseHolo: false, sellerName: 'seller1', sellerCountry: 'DE',
+      condition: 'near_mint', language: 'en', isReverseHolo: false, sellerCountry: 'DE',
       imageUrl: null,
     } });
+  });
+  it("keeps the seller's country but not their user name", () => {
+    const product = ctProductSchema.parse({ ...ctProduct(), user: { username: 'seller-handle-42', country_code: 'FR' } });
+    const result = normalizeCtProduct(product, ctBlueprint(), tracked);
+    expect(result).toMatchObject({ listing: { sellerCountry: 'FR' } });
+    expect(JSON.stringify(result)).not.toContain('seller-handle-42');
+    // An offer without a user name is fine: it is never needed.
+    expect(ctProductSchema.parse({ ...ctProduct(), user: { country_code: 'DE' } }).user.country_code).toBe('DE');
   });
   it('keeps CardTrader picture links and uses null when there is none', () => {
     const ok = 'https://cardtrader.com/uploads/blueprints/image/413227/preview_413227-raikou.jpg';
@@ -21,7 +29,7 @@ describe('normalizeCtProduct', () => {
   });
   it('rejects unsafe picture links', () => {
     for (const bad of ['http://cardtrader.com/x.jpg', 'https://evil.example/x.jpg', 'javascript:alert(1)',
-      'https://cardtrader.com.evil.example/x.jpg', 'not a url', '', 42, null, undefined]) {
+      'https://cardtrader.com.evil.example/x.jpg', 'https://user:pw@cardtrader.com/x.jpg', 'https://cardtrader.com:8443/x.jpg', 'not a url', '', 42, null, undefined]) {
       expect(safeCardTraderImageUrl(bad)).toBeNull();
     }
     expect(safeCardTraderImageUrl('https://www.cardtrader.com/uploads/a.jpg')).toBe('https://www.cardtrader.com/uploads/a.jpg');

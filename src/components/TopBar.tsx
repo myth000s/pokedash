@@ -1,4 +1,5 @@
 import { formatAge } from '@/lib/format';
+import { SignOutButton } from './SignOutButton';
 
 export function TopBar({ setName, lastCheckedAt, now }: { setName: string; lastCheckedAt: Date | null; now: Date }) {
   return (
@@ -13,6 +14,7 @@ export function TopBar({ setName, lastCheckedAt, now }: { setName: string; lastC
         <span className="live-dot" aria-hidden="true" />
         {lastCheckedAt ? `Live · checked ${formatAge(lastCheckedAt, now)}` : 'Not checked yet'}
       </p>
+      <SignOutButton />
     </div>
   );
 }

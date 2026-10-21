@@ -8,7 +8,7 @@ const schema = z.object({ ok: z.boolean() });
 const setup = (...responses: Response[]) => {
   const fetchImpl = vi.fn<typeof fetch>();
   responses.forEach((r) => fetchImpl.mockResolvedValueOnce(r));
-  const sleep = vi.fn(async (_ms: number) => {});
+  const sleep = vi.fn(async (ms: number) => { void ms; });
   return { fetchImpl, sleep };
 };
 
@@ -28,7 +28,7 @@ describe('fetchJson', () => {
   it('wraps the final network error with the URL but never the Authorization value', async () => {
     const cause = Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNRESET' } });
     const fetchImpl = vi.fn<typeof fetch>().mockRejectedValue(cause);
-    const sleep = vi.fn(async (_ms: number) => {});
+    const sleep = vi.fn(async (ms: number) => { void ms; });
     const err = await fetchJson('https://x.test/a', {
       schema, fetchImpl, sleep, retries: 1, headers: { Authorization: 'Bearer SECRET123' },
     }).catch((e: Error) => e);

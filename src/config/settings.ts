@@ -19,3 +19,14 @@ export const DEFAULT_DEAL_SETTINGS: DealSettings = {
   languages: ['en', 'de'],
   dealConditions: ['mint', 'near_mint'],
 };
+
+/** How long rows are kept before the daily cleanup deletes them. */
+export const RETENTION_DAYS = {
+  unavailableListings: 30,
+  listingPriceHistory: 90,
+  usReferencePrices: 30,
+  benchmarkSnapshots: 365,
+} as const;
+
+/** The daily run fails when the database grows past this size. */
+export const DB_SIZE_ALERT_BYTES = 400 * 1024 * 1024;

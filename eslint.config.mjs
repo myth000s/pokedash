@@ -1,16 +1,25 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import tseslint from "typescript-eslint";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
+import jsxA11y from "eslint-plugin-jsx-a11y";
+import globals from "globals";
 
 const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
-  // Override default ignores of eslint-config-next.
+  ...tseslint.configs.recommended,
+  react.configs.flat.recommended,
+  react.configs.flat["jsx-runtime"],
+  reactHooks.configs.flat.recommended,
+  jsxA11y.flatConfigs.recommended,
+  {
+    settings: { react: { version: "detect" } },
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
+  },
   globalIgnores([
-    // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",
+    ".vercel/**",
     "next-env.d.ts",
   ]),
 ]);

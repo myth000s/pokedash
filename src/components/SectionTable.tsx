@@ -134,6 +134,8 @@ export function SectionTable({ section, rows, allSingles, sealedType }: {
             <span />
             {heads.map((h) => <span key={h}>{h}</span>)}
           </div>
+          {/* Safari drops list semantics under list-style: none; role="list" restores them (false positive). */}
+          {/* eslint-disable-next-line jsx-a11y/no-redundant-roles */}
           <ul role="list" className="m-0 flex list-none flex-col gap-1.5 p-0">
             {rows.map((r) => <Row key={r.productId} row={r} section={section} />)}
           </ul>

@@ -2,6 +2,11 @@
 
 import { useCallback, useState } from 'react';
 
+/** Same-origin URL for a CardTrader picture; the server fetches it, so the browser never contacts CardTrader. */
+export function proxiedImageSrc(src: string): string {
+  return `/api/card-image?src=${encodeURIComponent(src)}`;
+}
+
 /** 5:7 card picture. Falls back to a lettered placeholder when there is no picture or it fails to load. */
 export function CardImage({ src, alt, className = '' }: { src: string | null; alt: string; className?: string }) {
   const [failed, setFailed] = useState(false);
@@ -23,9 +28,8 @@ export function CardImage({ src, alt, className = '' }: { src: string | null; al
   }
   return (
     <div className={`${box} bg-gradient-to-b from-[#2a2f5a] to-[#151935]`}>
-      {/* Plain img on purpose: pictures are CardTrader links and are not routed through next/image. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img ref={checkLoaded} src={src} alt={alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} className="block h-full w-full object-cover" />
+      {/* Plain img on purpose: pictures come from the same-origin image proxy and are not routed through next/image. */}
+      <img ref={checkLoaded} src={proxiedImageSrc(src)} alt={alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} className="block h-full w-full object-cover" />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { connection } from 'next/server';
+import { requireAal2 } from '@/auth/session';
 import { getDb } from '@/db/client';
 import { getDealFeed } from '@/deals/feed';
 import { getFeedStats } from '@/deals/stats';
@@ -14,8 +15,10 @@ import { SectionTable } from '@/components/SectionTable';
 import { FeedSkeleton } from '@/components/FeedSkeleton';
 
 // Reads the database on every request: connection() opts out of build-time prerendering.
+// Only AAL2 sessions get past requireAal2(); everyone else is redirected before any database read.
 async function Feed({ searchParams }: { searchParams: PageProps<'/'>['searchParams'] }) {
   await connection();
+  await requireAal2();
   const { tab, allSingles, sealedType } = parseDashboardParams(await searchParams);
   const now = new Date();
   const db = getDb();
