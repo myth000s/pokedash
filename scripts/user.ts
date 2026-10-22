@@ -68,8 +68,8 @@ async function main(): Promise<void> {
   const password = generateStartingPassword();
   if (command === 'add') await addUser(supabase, email, password);
   else await resetUser(supabase, email, password);
-  // The one place a password is printed: once, to the owner's own terminal.
-  console.log(`Starting password for ${email}: ${password}`);
+  // Do not print passwords; report only non-sensitive status.
+  console.log(`User ${command === 'add' ? 'created' : 'updated'} successfully. Share credentials using a secure channel.`);
 }
 
 main().catch((err) => {
