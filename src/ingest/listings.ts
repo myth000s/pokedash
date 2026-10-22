@@ -1,4 +1,4 @@
-import { and, eq, inArray, lt } from 'drizzle-orm';
+import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import { listingPriceHistory, listings, products } from '@/db/schema';
 import type { Db } from '@/db/client';
 import type { TrackedSet } from '@/config/sets';
@@ -10,6 +10,25 @@ export interface IngestListingsResult {
   markedUnavailable: number;
   skipReasons: Record<string, number>;
 }
+
+const WRITE_BATCH_SIZE = 500;
+
+// On conflict, take every column from the incoming row except first_seen_at.
+const UPSERT_SET = {
+  productId: sql`excluded.product_id`,
+  title: sql`excluded.title`,
+  url: sql`excluded.url`,
+  priceCents: sql`excluded.price_cents`,
+  currency: sql`excluded.currency`,
+  shippingCents: sql`excluded.shipping_cents`,
+  condition: sql`excluded.condition`,
+  language: sql`excluded.language`,
+  isReverseHolo: sql`excluded.is_reverse_holo`,
+  sellerCountry: sql`excluded.seller_country`,
+  imageUrl: sql`excluded.image_url`,
+  available: sql`excluded.available`,
+  lastSeenAt: sql`excluded.last_seen_at`,
+};
 
 export async function ingestListings(
   db: Db,
@@ -52,6 +71,9 @@ export async function ingestListings(
       if (productId === undefined) continue;
       await tx.update(products).set({ imageUrl: m.imageUrl, tcgplayerId: m.tcgplayerId }).where(eq(products.id, productId));
     }
+    // Last occurrence wins, as the old one-by-one upsert did; Postgres rejects a batch
+    // that updates the same row twice.
+    const rowsByExternalId = new Map<string, typeof listings.$inferInsert>();
     let upserted = 0;
     for (const l of result.listings) {
       const productId = productIdByCardmarketId.get(l.cardmarketProductId);
@@ -59,7 +81,10 @@ export async function ingestListings(
         skip('Untracked product');
         continue;
       }
-      const values = {
+      rowsByExternalId.set(l.externalId, {
+        marketplace,
+        externalId: l.externalId,
+        firstSeenAt: now,
         productId,
         title: l.title,
         url: l.url,
@@ -73,24 +98,35 @@ export async function ingestListings(
         imageUrl: l.imageUrl,
         available: true,
         lastSeenAt: now,
-      };
-      const [row] = await tx
-        .insert(listings)
-        .values({ marketplace, externalId: l.externalId, firstSeenAt: now, ...values })
-        .onConflictDoUpdate({ target: [listings.marketplace, listings.externalId], set: values })
-        .returning({ id: listings.id });
+      });
       upserted += 1;
+    }
 
-      const prev = existing.get(l.externalId);
-      if (!prev || prev.priceCents !== l.priceCents || prev.shippingCents !== l.shippingCents) {
-        await tx.insert(listingPriceHistory).values({
-          listingId: row.id,
-          priceCents: l.priceCents,
-          shippingCents: l.shippingCents,
-          observedAt: now,
-        });
+    // Each statement is a round trip to the hosted database, so write in batches.
+    const rows = [...rowsByExternalId.values()];
+    const history: (typeof listingPriceHistory.$inferInsert)[] = [];
+    for (let i = 0; i < rows.length; i += WRITE_BATCH_SIZE) {
+      const batch = rows.slice(i, i + WRITE_BATCH_SIZE);
+      const written = await tx
+        .insert(listings)
+        .values(batch)
+        .onConflictDoUpdate({ target: [listings.marketplace, listings.externalId], set: UPSERT_SET })
+        .returning({ id: listings.id, externalId: listings.externalId });
+      const idByExternalId = new Map(written.map((w) => [w.externalId, w.id]));
+      for (const row of batch) {
+        const prev = existing.get(row.externalId);
+        if (!prev || prev.priceCents !== row.priceCents || prev.shippingCents !== row.shippingCents) {
+          history.push({
+            listingId: idByExternalId.get(row.externalId)!,
+            priceCents: row.priceCents,
+            shippingCents: row.shippingCents,
+            observedAt: now,
+          });
+        }
       }
-      existing.set(l.externalId, { id: row.id, externalId: l.externalId, priceCents: l.priceCents, shippingCents: l.shippingCents });
+    }
+    for (let i = 0; i < history.length; i += WRITE_BATCH_SIZE) {
+      await tx.insert(listingPriceHistory).values(history.slice(i, i + WRITE_BATCH_SIZE));
     }
 
     const gone = await tx

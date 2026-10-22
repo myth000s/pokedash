@@ -18,6 +18,34 @@ beforeEach(async () => {
   await ingestCardmarket(db, { fetchJson: cardmarketFetch() }, SET);
 });
 
+describe('ingestListings in batches', () => {
+  // Each statement is a network round trip to the hosted database; one per listing timed out in CI.
+  it('writes 1,201 listings and their first prices with a few batched statements', async () => {
+    const statements: string[] = [];
+    const logged = await createTestDb({ logger: { logQuery: (q) => statements.push(q) } });
+    await ingestCardmarket(logged, { fetchJson: cardmarketFetch() }, SET);
+    const many = Array.from({ length: 1201 }, (_, i) => makeListing({ externalId: `ct-${i}`, priceCents: 9000 + i }));
+    statements.length = 0;
+
+    const result = await ingestListings(logged, fakeProvider('cardtrader', many), SET, T1);
+
+    expect(result.upserted).toBe(1201);
+    expect(await logged.select().from(listings)).toHaveLength(1201);
+    expect(await logged.select().from(listingPriceHistory)).toHaveLength(1201);
+    expect(statements.filter((q) => /^insert into "listings"/i.test(q)).length).toBeLessThanOrEqual(3);
+    expect(statements.filter((q) => /^insert into "listing_price_history"/i.test(q)).length).toBeLessThanOrEqual(3);
+  });
+  it('records history only for changed prices on a second batched run', async () => {
+    const many = (bump: number) => Array.from({ length: 600 }, (_, i) => makeListing({ externalId: `ct-${i}`, priceCents: 9000 + (i < 10 ? bump : 0) }));
+    await ingestListings(db, fakeProvider('cardtrader', many(0)), SET, T1);
+    await ingestListings(db, fakeProvider('cardtrader', many(5)), SET, T2);
+    expect(await db.select().from(listings)).toHaveLength(600);
+    expect(await db.select().from(listingPriceHistory)).toHaveLength(610);
+    const [first] = await db.select().from(listings).where(eq(listings.externalId, 'ct-0'));
+    expect(first).toMatchObject({ priceCents: 9005, lastSeenAt: T2, firstSeenAt: T1, available: true });
+  });
+});
+
 describe('ingestListings', () => {
   it('stores product pictures and TCGplayer ids from the provider', async () => {
     const provider = { marketplace: 'cardtrader' as const, fetchListings: async () => ({
