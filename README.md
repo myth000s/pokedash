@@ -45,7 +45,7 @@ On the first login you sign in with the starting password, set up an authenticat
 | Part | Service | What it does |
 |---|---|---|
 | Website | Vercel (Hobby, region fra1) | Serves the Next.js app. It only reads the database. |
-| Database and logins | Supabase (Free, Frankfurt) | Holds the Postgres database and the accounts. You log in with a password plus a code from an authenticator app (TOTP). |
+| Database and logins | Supabase (Free, Ireland, eu-west-1) | Holds the Postgres database and the accounts. You log in with a password plus a code from an authenticator app (TOTP). |
 | Data updates | GitHub Actions | `ingest-listings` runs every 30 minutes; `ingest-daily` runs once a day (Cardmarket values, US prices, cleanup and a database size check). They share a concurrency group, so they never run at the same time. |
 
 Nobody can sign up on their own: the owner creates accounts with a script, and pokedash sends no emails.
@@ -65,7 +65,7 @@ Do these steps in order. You click through each provider's website yourself and 
 
 ### 1. Supabase project
 
-1. Create a project on the Free plan in region Frankfurt. Note the project reference (`<project-ref>`).
+1. Create a project on the Free plan in an EU region (pokedash uses Ireland, eu-west-1). Note the project reference (`<project-ref>`).
 2. Database settings: turn on "Enforce SSL".
 3. Settings, Data API: turn it off. pokedash never uses it.
 4. Authentication settings:
