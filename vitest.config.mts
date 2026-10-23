@@ -7,5 +7,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     setupFiles: ['test/setup.ts'],
+    // Each DB test boots PGlite and runs every migration; under a parallel full run that can pass 5 s.
+    testTimeout: 15_000,
   },
 });
