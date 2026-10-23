@@ -22,6 +22,16 @@ export interface PoolListing {
 }
 
 const MS_PER_HOUR = 3_600_000;
+
+/** True when the listing was last seen within maxAgeHours of now. */
+export function isFresh(lastSeenAt: Date, now: Date, maxAgeHours: number): boolean {
+  return (now.getTime() - lastSeenAt.getTime()) / MS_PER_HOUR <= maxAgeHours;
+}
+
+/** The listing conditions that make up each condition group. */
+export const GROUP_CONDITIONS: Record<ConditionGroup, Condition[]> = {
+  nm: ['mint', 'near_mint'], sp: ['slightly_played'], mp: ['moderately_played'],
+};
 const MIN_OTHERS = 3;
 
 /**
@@ -35,7 +45,7 @@ export function referenceValues(pool: PoolListing[], now: Date, maxAgeHours: num
     const group = conditionGroup(l.condition);
     if (!l.available || group === null || l.currency !== 'EUR') continue;
     if (l.language !== 'en' && l.language !== 'de') continue;
-    if ((now.getTime() - l.lastSeenAt.getTime()) / MS_PER_HOUR > maxAgeHours) continue;
+    if (!isFresh(l.lastSeenAt, now, maxAgeHours)) continue;
     const key = `${l.productId}|${l.edition}|${group}|${l.isReverseHolo}`;
     const members = groups.get(key);
     if (members) members.push(l); else groups.set(key, [l]);

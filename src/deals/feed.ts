@@ -46,6 +46,12 @@ export function byDescNullsLast(a: number | null, b: number | null): number {
   return b - a;
 }
 
+/** The deal settings for a product's set (vintage sets accept more conditions). */
+export function dealSettingsFor(settings: DealSettings, setKey: string): DealSettings {
+  const set = findSet(setKey);
+  return set ? { ...settings, dealConditions: dealConditionsFor(set) } : settings;
+}
+
 /** The benchmark for a reference value computed from current EN/DE offers; null means too few offers. */
 export function enDeBenchmark(value: number | null, now: Date): BenchmarkAssessment {
   return {
@@ -93,8 +99,7 @@ export async function getDealFeed(
     const value = references.get(l.id) ?? null;
     const benchmark = enDeBenchmark(value, opts.now);
     const condition = l.condition as Condition | null;
-    const set = findSet(p.setKey);
-    const dealSettings = set ? { ...settings, dealConditions: dealConditionsFor(set) } : settings;
+    const dealSettings = dealSettingsFor(settings, p.setKey);
     const score = markStaleListing(
       scoreListing(
         { priceCents: l.priceCents, shippingCents: l.shippingCents, currency: l.currency, condition, language: l.language, kind },

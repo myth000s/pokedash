@@ -73,7 +73,7 @@ describe('sections', () => {
   it('lists products without an EN/DE offer', async () => {
     const rows = await sealed();
     expect(rows.map((r) => r.productName)).toEqual([
-      '30th Celebration Elite Trainer Box', '30th Celebration Poster Collection', '30th Celebration: Knock Out Collection', // no values, so by name
+      '30th Celebration Elite Trainer Box', '30th Celebration: Knock Out Collection', '30th Celebration Poster Collection', // Cardmarket value order
     ]);
     expect(rows.every((r) => r.offer === null && r.offerCount === 0)).toBe(true);
   });
@@ -198,6 +198,25 @@ describe('sections', () => {
       expect(first.benchmark.valueCents).toBe(910000);
       expect(first.edition).toBe('first_edition');
       expect(first.offer).toMatchObject({ priceCents: 900000 });
+    });
+    it('values sealed products per edition too', async () => {
+      const etb = (price: number, edition: 'unlimited' | 'first_edition') => ({ externalId: `etb-${edition}-${price}`, priceCents: price, language: 'en', edition });
+      await seed(etb(10000, 'unlimited'), etb(11000, 'unlimited'), etb(12000, 'unlimited'), etb(50000, 'first_edition'), etb(51000, 'first_edition'), etb(52000, 'first_edition'));
+      const row = async (edition?: 'first_edition') =>
+        (await getSectionRows(db, { section: 'sealed', setKey: SET.key, now: NOW, edition })).find((r) => r.productName === '30th Celebration Elite Trainer Box')!;
+      expect(await row()).toMatchObject({ edition: 'unlimited', benchmark: { valueCents: 11000 }, offer: { priceCents: 10000 } });
+      expect(await row('first_edition')).toMatchObject({ edition: 'first_edition', benchmark: { valueCents: 51000 }, offer: { priceCents: 50000 } });
+    });
+    it('counts singles for the chosen edition and condition group, matching the rows', async () => {
+      await seed(
+        mewNm(900000, { edition: 'first_edition' }), mewNm(910000, { edition: 'first_edition' }), mewNm(920000, { edition: 'first_edition' }),
+        mewNm(60000, { condition: 'slightly_played' }), mewNm(65000, { condition: 'slightly_played' }), mewNm(70000, { condition: 'slightly_played' }),
+      );
+      expect((await getSectionCounts(db, SET.key, NOW)).singles).toBe(0);
+      expect((await getSectionCounts(db, SET.key, NOW, { edition: 'first_edition' })).singles).toBe(1);
+      expect((await getSectionCounts(db, SET.key, NOW, { conditionGroup: 'sp' })).singles).toBe(1);
+      const rows = await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW, conditionGroup: 'sp' });
+      expect(rows).toHaveLength(1);
     });
     it('returns a null value when an edition has fewer than 3 offers', async () => {
       await seed(mewNm(100000), mewNm(110000), mewNm(120000), mewNm(900000, { edition: 'first_edition' }), mewNm(910000, { edition: 'first_edition' }));

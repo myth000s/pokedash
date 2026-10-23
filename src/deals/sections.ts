@@ -1,12 +1,12 @@
-import { and, count, desc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, or, type SQL } from 'drizzle-orm';
 import { benchmarkSnapshots, fxRates, listings, products, usReferencePrices } from '@/db/schema';
 import type { Db } from '@/db/client';
-import { DEFAULT_DEAL_SETTINGS, dealConditionsFor, type DealSettings } from '@/config/settings';
-import { findSet, TRACKED_SETS } from '@/config/sets';
-import { cheapestReference, conditionGroup, type ConditionGroup } from '@/deals/reference';
+import { DEFAULT_DEAL_SETTINGS, type DealSettings } from '@/config/settings';
+import { TRACKED_SETS } from '@/config/sets';
+import { cheapestReference, GROUP_CONDITIONS, isFresh, type ConditionGroup } from '@/deals/reference';
 import { markStaleListing, scoreListing } from '@/scoring/score';
 import { matchesQuery } from '@/lib/search';
-import { byDescNullsLast, enDeBenchmark } from '@/deals/feed';
+import { byDescNullsLast, dealSettingsFor, enDeBenchmark } from '@/deals/feed';
 import type { BenchmarkAssessment, Condition, Edition, ProductKind, ScoredListing } from '@/domain/types';
 
 export type SealedType = 'etb' | 'bundles-displays' | 'boosters' | 'collections' | 'tins' | 'blisters' | 'battle-decks' | 'other';
@@ -42,7 +42,6 @@ async function latestSnapshots(db: Db, ids: number[]): Promise<Map<number, Snaps
 const isWorthListing = (valueCents: number | null) => (valueCents ?? 0) >= SINGLES_MIN_VALUE_CENTS;
 
 const MAX_US_AGE_MS = 7 * 24 * 3_600_000;
-const MS_PER_HOUR = 3_600_000;
 const NO_RARITY = 'No rarity';
 
 export interface SectionOffer {
@@ -81,7 +80,8 @@ export function sortRows(rows: SectionRow[], sort: SortKey | undefined): Section
     : sort === 'expensive' ? (a, b) => byDescNullsLast(price(a), price(b)) || byName(a, b)
     : sort === 'saving' ? (a, b) => byDescNullsLast(saving(a), saving(b)) || byName(a, b)
     : (a, b) => typeIndex(a.sealedType) - typeIndex(b.sealedType)
-      || byDescNullsLast(a.benchmark.valueCents, b.benchmark.valueCents) || byName(a, b);
+      || byDescNullsLast(a.benchmark.valueCents, b.benchmark.valueCents)
+      || byDescNullsLast(a.cardmarketValueCents, b.cardmarketValueCents) || byName(a, b);
   return [...rows].sort(compare);
 }
 
@@ -90,10 +90,30 @@ interface SectionOpts {
   query?: string; language?: 'en' | 'de'; edition?: Edition; rarities?: string[]; conditionGroup?: ConditionGroup; sort?: SortKey;
 }
 
+/** The SQL filters shared by the row query and the count: available EN/DE EUR offers of one edition and condition group. */
+function offerFilters(kind: ProductKind, edition: Edition, group: ConditionGroup, language?: 'en' | 'de'): SQL[] {
+  const inGroup = inArray(listings.condition, GROUP_CONDITIONS[group]);
+  return [
+    eq(listings.available, true),
+    inArray(listings.language, language ? [language] : ['en', 'de']),
+    eq(listings.currency, 'EUR'),
+    eq(listings.edition, edition),
+    // Sealed products have no condition: they count as Near Mint.
+    kind === 'sealed' ? or(isNull(listings.condition), inGroup)! : inGroup,
+  ];
+}
+
+/** The reference value of one product: the median of its 3 cheapest fresh regular offers, or null. */
+function referenceOf(offers: { priceCents: number; lastSeenAt: Date; isReverseHolo: boolean }[], kind: ProductKind, now: Date, maxAgeHours: number): number | null {
+  return cheapestReference(offers
+    .filter((l) => !(kind === 'single' && l.isReverseHolo) && isFresh(l.lastSeenAt, now, maxAgeHours))
+    .map((l) => l.priceCents));
+}
+
 async function loadRows(db: Db, setKeys: string[], opts: SectionOpts): Promise<SectionRow[]> {
   const settings = opts.settings ?? DEFAULT_DEAL_SETTINGS;
   const kind: ProductKind = opts.section === 'singles' ? 'single' : 'sealed';
-  // Sealed products have no condition (they count as Near Mint) and no edition choice.
+  // Sealed products have no condition: they count as Near Mint.
   const group: ConditionGroup = kind === 'single' ? opts.conditionGroup ?? 'nm' : 'nm';
   const edition: Edition = opts.edition ?? 'unlimited';
 
@@ -106,14 +126,10 @@ async function loadRows(db: Db, setKeys: string[], opts: SectionOpts): Promise<S
 
   const listingRows = await db.select().from(listings).where(and(
     inArray(listings.productId, ids),
-    eq(listings.available, true),
-    inArray(listings.language, opts.language ? [opts.language] : ['en', 'de']),
-    eq(listings.currency, 'EUR'),
+    ...offerFilters(kind, edition, group, opts.language),
   ));
   const byProduct = new Map<number, typeof listingRows>();
   for (const l of listingRows) {
-    if ((conditionGroup(l.condition as Condition | null) ?? (kind === 'sealed' ? 'nm' : null)) !== group) continue;
-    if (kind === 'single' && l.edition !== edition) continue;
     const arr = byProduct.get(l.productId);
     if (arr) arr.push(l); else byProduct.set(l.productId, [l]);
   }
@@ -136,20 +152,14 @@ async function loadRows(db: Db, setKeys: string[], opts: SectionOpts): Promise<S
       const candidates = byProduct.get(p.id) ?? [];
       // The value comes from regular (non-reverse-holo) singles, so the offer compares like with like.
       const comparable = kind === 'single' ? candidates.filter((l) => !l.isReverseHolo) : candidates;
-      const benchmark = enDeBenchmark(
-        cheapestReference(comparable
-          .filter((l) => (opts.now.getTime() - l.lastSeenAt.getTime()) / MS_PER_HOUR <= settings.maxListingAgeHours)
-          .map((l) => l.priceCents)),
-        opts.now,
-      );
+      const benchmark = enDeBenchmark(referenceOf(comparable, kind, opts.now, settings.maxListingAgeHours), opts.now);
       const cheapest = comparable.reduce<(typeof candidates)[number] | null>(
         (best, l) => (!best || l.priceCents < best.priceCents || (l.priceCents === best.priceCents && l.id < best.id) ? l : best),
         null,
       );
       let offer: SectionOffer | null = null;
       if (cheapest) {
-        const set = findSet(p.setKey);
-        const dealSettings = set ? { ...settings, dealConditions: dealConditionsFor(set) } : settings;
+        const dealSettings = dealSettingsFor(settings, p.setKey);
         const score = markStaleListing(
           scoreListing(
             {
@@ -201,14 +211,28 @@ export async function getAvailableRarities(db: Db, setKey: string): Promise<stri
   return rows.some((r) => r.rarity === null) ? [...named, NO_RARITY] : named;
 }
 
-/** Tab counts; `setKey` null means across all tracked sets. */
+/** Tab counts; `setKey` null means across all tracked sets. Singles are counted the way getSectionRows shows them. */
 export async function getSectionCounts(
   db: Db, setKey: string | null, now: Date = new Date(),
+  opts: { edition?: Edition; conditionGroup?: ConditionGroup } = {},
 ): Promise<{ singles: number; sealed: number }> {
   const setKeys = setKey === null ? TRACKED_SETS.map((s) => s.key) : [setKey];
-  const [singles, [sealed]] = await Promise.all([
-    loadRows(db, setKeys, { section: 'singles', now }),
+  const maxAge = DEFAULT_DEAL_SETTINGS.maxListingAgeHours;
+  const [offers, [sealed]] = await Promise.all([
+    db.select({
+      productId: listings.productId, priceCents: listings.priceCents, lastSeenAt: listings.lastSeenAt, isReverseHolo: listings.isReverseHolo,
+    }).from(listings).innerJoin(products, eq(listings.productId, products.id)).where(and(
+      inArray(products.setKey, setKeys), eq(products.kind, 'single'),
+      gte(listings.lastSeenAt, new Date(now.getTime() - maxAge * 3_600_000)),
+      ...offerFilters('single', opts.edition ?? 'unlimited', opts.conditionGroup ?? 'nm'),
+    )),
     db.select({ n: count() }).from(products).where(and(inArray(products.setKey, setKeys), eq(products.kind, 'sealed'))),
   ]);
-  return { singles: singles.length, sealed: sealed.n };
+  const byProduct = new Map<number, typeof offers>();
+  for (const o of offers) {
+    const arr = byProduct.get(o.productId);
+    if (arr) arr.push(o); else byProduct.set(o.productId, [o]);
+  }
+  const singles = [...byProduct.values()].filter((os) => isWorthListing(referenceOf(os, 'single', now, maxAge))).length;
+  return { singles, sealed: sealed.n };
 }
