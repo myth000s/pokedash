@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { missingIngestSecrets, parseIngestMode, runIngestion } from './run';
 import { THIRTIETH_CELEBRATION as SET, JUNGLE } from '@/config/sets';
 import { cardmarketFetch } from '../../test/helpers/cardmarket';
@@ -70,5 +71,32 @@ describe('runIngestion with several sets', () => {
     await runIngestion(db, { fetchJson, ppt, providers: [] }, [noUs, { ...noUs, key: 'fossil' }], new Date('2026-10-20T12:00:00Z'), 'daily');
     expect(fetchJson).toHaveBeenCalledTimes(3);
     expect(Object.values(ppt).every((f) => (f as ReturnType<typeof vi.fn>).mock.calls.length === 0)).toBe(true);
+  });
+});
+
+describe('runIngestion once-per-run downloads', () => {
+  const ECB = readFileSync('test/fixtures/ecb-daily.xml', 'utf8');
+  it('fetches the exchange rate once per run, reported with the first set', async () => {
+    const db = await createTestDb();
+    const fetchText = vi.fn(async () => ECB);
+    const noUs = { ...JUNGLE, usPrices: false };
+    const reports = await runIngestion(db, { fetchJson: cardmarketFetch(), fetchText, providers: [] }, [noUs, { ...noUs, key: 'fossil' }, { ...noUs, key: 'team-rocket' }], new Date('2026-10-20T12:00:00Z'), 'daily');
+    expect(fetchText).toHaveBeenCalledTimes(1);
+    expect(reports.map((r) => r.fx)).toEqual([{ rateDate: '2026-10-19', inserted: true }, undefined, undefined]);
+  });
+  it('retries a failed Cardmarket download for the next set instead of reusing the failure', async () => {
+    const db = await createTestDb();
+    const inner = cardmarketFetch();
+    let failures = 1;
+    const fetchJson = vi.fn(async (url: string) => {
+      if (failures > 0) { failures -= 1; throw new Error('timeout'); }
+      return inner(url);
+    });
+    const noUs = { ...JUNGLE, usPrices: false };
+    const reports = await runIngestion(db, { fetchJson, providers: [] }, [noUs, { ...noUs, key: 'fossil' }], new Date('2026-10-20T12:00:00Z'), 'daily');
+    expect(reports[0].cardmarket).toEqual({ error: 'timeout' });
+    expect(reports[1].cardmarket).not.toHaveProperty('error');
+    // 3 URLs: the failed one was fetched again, the other two were reused.
+    expect(fetchJson).toHaveBeenCalledTimes(4);
   });
 });

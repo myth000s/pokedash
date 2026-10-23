@@ -46,6 +46,57 @@ describe('ingestListings in batches', () => {
   });
 });
 
+describe('ingestListings round trips', () => {
+  it('writes a set of 600 products with a few statements, independent of the product count', async () => {
+    const statements: string[] = [];
+    const logged = await createTestDb({ logger: { logQuery: (q) => statements.push(q) } });
+    const ids = Array.from({ length: 600 }, (_, i) => 500000 + i);
+    await logged.insert(products).values(ids.map((cardmarketId) => ({
+      cardmarketId, name: `Card ${cardmarketId}`, kind: 'single', categoryName: 'Pokémon Single', cardmarketExpansionId: 1, setKey: SET.key, updatedAt: T1,
+    })));
+    const listingsOf = (price: number) => ids.flatMap((cardmarketProductId) => [0, 1].map((k) => makeListing({
+      externalId: `ct-${cardmarketProductId}-${k}`, cardmarketProductId, priceCents: price + k, rarity: 'Rare', condition: 'near_mint',
+    })));
+    const provider = (price: number) => ({ marketplace: 'cardtrader' as const, fetchListings: async () => ({
+      listings: listingsOf(price), skipped: [],
+      products: ids.map((cardmarketProductId) => ({ cardmarketProductId, imageUrl: `https://img/${cardmarketProductId}.jpg`, tcgplayerId: cardmarketProductId })),
+    }) });
+
+    for (const [run, at, price] of [[1, T1, 1000], [2, T2, 1100]] as const) {
+      statements.length = 0;
+      const r = await ingestListings(logged, provider(price), SET, at);
+      expect(r.upserted).toBe(1200);
+      // Products read, 2 product updates, 1 changed-price insert, 3 upserts, 1 first-price insert, 1 mark-unavailable.
+      expect(statements.length, `run ${run}: ${statements.join('\n').slice(0, 2000)}`).toBeLessThanOrEqual(10);
+      expect(statements.filter((q) => /^update "products"/i.test(q))).toHaveLength(2);
+      expect(statements.filter((q) => /^insert into "listing_price_history"/i.test(q))).toHaveLength(2);
+      expect(statements.filter((q) => /^select/i.test(q))).toHaveLength(1);
+    }
+    expect(await logged.select().from(listingPriceHistory)).toHaveLength(2400);
+    const [p] = await logged.select().from(products).where(eq(products.cardmarketId, 500123));
+    expect(p).toMatchObject({ imageUrl: 'https://img/500123.jpg', tcgplayerId: 500123, rarity: 'Rare' });
+  });
+});
+
+describe('ingestListings price history', () => {
+  it('records a shipping change, and nothing when price and unknown shipping stay the same', async () => {
+    await ingestListings(db, fakeProvider('cardtrader', [makeListing(), makeListing({ externalId: 'ct-2', shippingCents: 300 })]), SET, T1);
+    await ingestListings(db, fakeProvider('cardtrader', [makeListing(), makeListing({ externalId: 'ct-2', shippingCents: 450 })]), SET, T2);
+    const history = await db.select().from(listingPriceHistory).orderBy(listingPriceHistory.id);
+    expect(history.map((h) => [h.priceCents, h.shippingCents, h.observedAt])).toEqual([
+      [9900, null, T1], [9900, 300, T1], [9900, 450, T2],
+    ]);
+  });
+  it('keeps a stored rarity when this run has none, and leaves pictures alone without product data', async () => {
+    const meta = { marketplace: 'cardtrader' as const, fetchListings: async () => ({
+      listings: [makeListing({ rarity: 'Holo Rare' })], skipped: [], products: [{ cardmarketProductId: 895551, imageUrl: 'https://cardtrader.com/etb.jpg', tcgplayerId: 704143 }] }) };
+    await ingestListings(db, meta, SET, T1);
+    await ingestListings(db, fakeProvider('cardtrader', [makeListing({ rarity: null })]), SET, T2);
+    const [etb] = await db.select().from(products).where(eq(products.cardmarketId, 895551));
+    expect(etb).toMatchObject({ rarity: 'Holo Rare', imageUrl: 'https://cardtrader.com/etb.jpg', tcgplayerId: 704143 });
+  });
+});
+
 describe('ingestListings edition and rarity', () => {
   it('stores edition and rarity, updates edition on a later run, and sets the product rarity', async () => {
     await ingestListings(db, fakeProvider('cardtrader', [makeListing({ edition: 'first_edition', rarity: 'Holo Rare' })]), SET, T1);

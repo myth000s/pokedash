@@ -13,6 +13,7 @@ export interface IngestionReport {
   set: string;
   cardmarket?: { products: number; snapshots: number } | { error: string };
   providers: { marketplace: Marketplace; result?: Awaited<ReturnType<typeof ingestListings>>; error?: string }[];
+  /** Once per run: only the first set's report carries it. */
   fx?: { rateDate: string; inserted: boolean } | { error: string };
   usPrices?: Awaited<ReturnType<typeof ingestUsReferencePrices>> | { error: string };
 }
@@ -58,16 +59,27 @@ export async function runIngestion(
 ): Promise<IngestionReport[]> {
   const reports: IngestionReport[] = [];
   // The Cardmarket catalogs and price guide are the same for every set: download each URL once.
+  // A failed download is forgotten, so the next set tries again instead of failing on the same error.
   const cache = new Map<string, Promise<unknown>>();
   const fetchJson = (url: string) => {
     let hit = cache.get(url);
     if (!hit) {
       hit = deps.fetchJson(url);
       cache.set(url, hit);
+      hit.catch(() => { if (cache.get(url) === hit) cache.delete(url); });
     }
     return hit;
   };
-  for (const set of sets) {
+  // The exchange rate is one per day, not per set: fetch it once per run, reported with the first set.
+  let fx: IngestionReport['fx'];
+  if (mode !== 'listings' && deps.fetchText) {
+    try {
+      fx = await ingestFxRate(db, { fetchText: deps.fetchText });
+    } catch (err) {
+      fx = { error: messageOf(err) };
+    }
+  }
+  for (const [i, set] of sets.entries()) {
     const report: IngestionReport = { set: set.key, providers: [] };
     if (mode !== 'listings') {
       try {
@@ -85,13 +97,7 @@ export async function runIngestion(
         report.providers.push({ marketplace: provider.marketplace, error: messageOf(err) });
       }
     }
-    if (mode !== 'listings' && deps.fetchText) {
-      try {
-        report.fx = await ingestFxRate(db, { fetchText: deps.fetchText });
-      } catch (err) {
-        report.fx = { error: messageOf(err) };
-      }
-    }
+    if (i === 0 && fx) report.fx = fx;
     if (mode !== 'listings' && deps.ppt && set.usPrices) {
       try {
         report.usPrices = await ingestUsReferencePrices(db, deps.ppt, set.key, now);

@@ -45,4 +45,26 @@ describe('ingestCardmarket', () => {
     expect(await countOf(db, benchmarkSnapshots)).toBe(7);
     expect(await countOf(db, products)).toBe(7);
   });
+  it('writes a set of 650 products and their values with a few statements', async () => {
+    const statements: string[] = [];
+    const db = await createTestDb({ logger: { logQuery: (q) => statements.push(q) } });
+    const ids = Array.from({ length: 650 }, (_, i) => 800000 + i);
+    const createdAt = '2026-10-19T12:36:50+0200';
+    const singles = {
+      version: 1, createdAt,
+      products: ids.map((idProduct) => ({ idProduct, name: `Card ${idProduct}`, categoryName: 'Pokémon Single', idExpansion: SET.cardmarketExpansionIds[0] })),
+    };
+    const priceGuide = { version: 1, createdAt: '2026-10-19T02:42:46+0200', priceGuides: ids.map((idProduct) => ({ idProduct, trend: 1.5 })) };
+    statements.length = 0;
+    const r = await ingestCardmarket(db, { fetchJson: cardmarketFetch({ singles, priceGuide, nonSingles: { version: 1, createdAt, products: [] } }) }, SET);
+    expect(r).toMatchObject({ products: 650, snapshots: 650 });
+    // 2 product upserts and 2 snapshot inserts (batches of 500).
+    expect(statements.filter((q) => /^insert into "products"/i.test(q))).toHaveLength(2);
+    expect(statements.filter((q) => /^insert into "benchmark_snapshots"/i.test(q))).toHaveLength(2);
+    expect(statements.length).toBeLessThanOrEqual(4);
+    expect(await countOf(db, products)).toBe(650);
+    const [p] = await db.select().from(products).where(eq(products.cardmarketId, 800321));
+    const [snap] = await db.select().from(benchmarkSnapshots).where(eq(benchmarkSnapshots.productId, p.id));
+    expect(snap.trendCents).toBe(150);
+  });
 });
