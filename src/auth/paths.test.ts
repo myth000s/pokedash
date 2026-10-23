@@ -8,6 +8,7 @@ const mustChange = { ...aal2, user_metadata: { must_change_password: true } };
 describe('proxyDecision', () => {
   it.each([
     ['/impressum', null, { action: 'next' }],
+    ['/icon.svg', null, { action: 'next' }],
     ['/impressum/', null, { action: 'next' }],
     ['/login', aal2, { action: 'next' }],
     ['/', null, { action: 'redirect', to: '/login' }],

@@ -4,27 +4,28 @@
   color-scheme: dark;
 }
 
+/* Theme "Shadow": night purple, magenta and pink. The holo-* names are the gradient's start, middle and end. */
 @theme inline {
-  --color-night: #080a17;
-  --color-ink: #e9ecff;
-  --color-mute: #a9b1e0;
+  --color-night: #0b0816;
+  --color-ink: #ece6ff;
+  --color-mute: #b9aee0;
   --color-gold: #ffd166;
   --color-mint: #06d6a0;
-  --color-holo-cyan: #4cc9f0;
-  --color-holo-purple: #b15cff;
-  --color-holo-pink: #f85888;
+  --color-holo-cyan: #9b5cff;
+  --color-holo-purple: #c13ccf;
+  --color-holo-pink: #ff5fa2;
   --font-display: var(--font-russo), Arial, sans-serif;
   --font-sans: var(--font-chakra), Arial, Helvetica, sans-serif;
 }
 
 body {
   background:
-    radial-gradient(55% 45% at 8% 0%, rgba(76, 201, 240, 0.28), transparent),
-    radial-gradient(45% 55% at 100% 20%, rgba(177, 92, 255, 0.3), transparent),
-    radial-gradient(60% 50% at 45% 110%, rgba(248, 88, 136, 0.22), transparent),
-    #080a17;
+    radial-gradient(55% 45% at 8% 0%, rgba(123, 63, 228, 0.32), transparent),
+    radial-gradient(45% 55% at 100% 20%, rgba(193, 60, 207, 0.28), transparent),
+    radial-gradient(60% 50% at 45% 110%, rgba(255, 95, 162, 0.22), transparent),
+    #0b0816;
   background-attachment: fixed;
-  color: #e9ecff;
+  color: #ece6ff;
   font-family: var(--font-sans);
 }
 
@@ -48,7 +49,7 @@ body {
   left: 50%;
   top: 50%;
   translate: -50% -50%;
-  background: conic-gradient(#4cc9f0, #b15cff, #f85888, #ffd166, #06d6a0, #4cc9f0);
+  background: conic-gradient(#7b3fe4, #c13ccf, #ff5fa2, #b15cff, #7b3fe4);
   animation: holo-spin 7s linear infinite;
 }
 @keyframes holo-spin {
