@@ -190,7 +190,13 @@ Have the Impressum and Datenschutz pages checked by a German legal-text service 
 
 ## Data sources and US prices
 
-Market values come from Cardmarket's public price guide, listings from CardTrader.
+Listings and market values both come from CardTrader. A product's market value is the median of the 3 cheapest other CardTrader EN/DE offers in the same edition and condition group, and at least 3 such offers are needed; with fewer, the dashboard shows "Too few offers" instead of a value. Cardmarket's public price guide is shown only as a note ("Cardmarket €x (all languages)"). It covers every language, so it is not used for the market value.
+
+Each deal and each row in the singles and sealed tables has a "Check on Cardmarket" link. It is a plain link to Cardmarket's search, filtered to English and German in Near Mint or better. pokedash never reads Cardmarket pages. The link format is documented in `src/lib/cardmarket.ts`; open one once in a browser to confirm it lands where you expect.
+
+Tracked sets (see `src/config/sets.ts`): 30th Celebration, plus these 15 WOTC sets: Base Set (with Shadowless as its own edition), Jungle, Fossil, Base Set 2, Team Rocket, Gym Heroes, Gym Challenge, Neo Genesis, Neo Discovery, Neo Revelation, Neo Destiny, Legendary Collection, Expedition Base Set, Aquapolis and Skyridge. The vintage sets show 1st Edition, Shadowless and Unlimited tabs where those editions exist.
+
+Schedule: all 16 sets stay in the existing 30-minute listings job and the daily job, with no extra workflow. Measured locally on 2026-10-23, a listings-only run for all 16 sets took 21 seconds, and a full ingest (Cardmarket catalogue plus listings for 16 sets) took 75 seconds and produced about 115,000 available EN/DE listings. GitHub's limit for a job is 15 minutes. Production timing is still to be confirmed after the merge.
 
 Run `npm run ingest` whenever you want fresh data locally. Without `CARDTRADER_TOKEN` it loads only Cardmarket values and skips CardTrader. The online workflows run the two parts separately:
 

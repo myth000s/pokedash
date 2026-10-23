@@ -4,6 +4,7 @@ import { formatEuro, formatPct, formatUsd } from '@/lib/format';
 import { splitProductName } from '@/lib/names';
 import { dashboardHref, parseDashboardParams, type DashboardParams } from '@/lib/params';
 import { CardImage } from './CardImage';
+import { CardmarketLink } from './CardmarketLink';
 import { NothingMatches, ResultLine, type ResultFilter } from './FilterResult';
 
 const GRID = 'md:grid-cols-[44px_minmax(0,1fr)_100px_120px_150px_90px_60px]';
@@ -123,6 +124,7 @@ function Row({ row, section, langLabel }: { row: SectionRow; section: 'singles' 
       ) : (
     <div className={classes}>{cells}</div>
       )}
+      <CardmarketLink productId={row.cardmarketProductId} productName={row.productName} className="mt-1 w-full md:w-auto" />
     </li>
   );
 }

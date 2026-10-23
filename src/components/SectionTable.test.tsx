@@ -78,6 +78,21 @@ describe('SectionTable', () => {
     render(<SectionTable section="singles" rows={[row({ productName: 'Mew [Psychic | 30C]', kind: 'single', sealedType: null })]} allSingles={false} sealedType={null} />);
     expect(screen.getByRole('link', { name: 'View Mew [Psychic | 30C] on CardTrader' })).toBeInTheDocument();
   });
+  it('adds a Check on Cardmarket link to every row, with or without an offer', () => {
+    render(<SectionTable section="singles" rows={[
+      row({ productId: 1, productName: 'Mew [Psychic | 30C]', kind: 'single', sealedType: null }),
+      row({ productId: 2, productName: 'Pikachu [Thunder Jolt]', kind: 'single', sealedType: null, offer: null, offerCount: 0 }),
+    ]} allSingles={false} sealedType={null} />);
+    const links = screen.getAllByRole('link', { name: /^Check on Cardmarket for / });
+    expect(links).toHaveLength(2);
+    for (const l of links) {
+      expect(l).toHaveTextContent('Check on Cardmarket');
+      expect(l).toHaveAttribute('target', '_blank');
+      expect(l).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(l.closest('a[href^="https://www.cardtrader.com"]')).toBeNull();
+    }
+    expect(new URL(links[0].getAttribute('href')!).searchParams.get('searchString')).toBe('Mew [Psychic | 30C]');
+  });
   it('shows a product without an offer', () => {
     render(<SectionTable section="sealed" rows={[row({ offer: null, offerCount: 0, us: null })]} allSingles={false} sealedType={null} />);
     expect(screen.getByText('no EN/DE offer yet')).toBeInTheDocument();

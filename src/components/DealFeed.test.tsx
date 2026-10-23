@@ -32,6 +32,28 @@ describe('DealFeed', () => {
     }
     expect(screen.getByRole('link', { name: 'View on CardTrader' })).toHaveAttribute('href', 'https://www.cardtrader.com/cards/1001');
   });
+  it('shows an edition badge on vintage deals and none on modern ones', () => {
+    const vintage = deal({ listingId: 7, productName: 'Charizard [Fire Spin]', kind: 'single', setKey: 'base-set', edition: 'first_edition', condition: 'near_mint' });
+    const a = render(<DealFeed deals={[vintage]} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.getByText('1st Edition')).toBeInTheDocument();
+    a.unmount();
+    const b = render(<DealFeed deals={[deal(), deal({ listingId: 8, setKey: 'base-set', edition: 'shadowless' })]} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.getAllByText('Shadowless')).toHaveLength(1);
+    b.unmount();
+    render(<DealFeed deals={[deal(), sneasel]} now={NOW} lastCheckedAt={NOW} />);
+    for (const label of ['1st Edition', 'Shadowless', 'Unlimited']) expect(screen.queryByText(label)).not.toBeInTheDocument();
+  });
+  it('links every deal to Cardmarket in a new tab', () => {
+    render(<DealFeed deals={[deal(), sneasel]} now={NOW} lastCheckedAt={NOW} />);
+    const links = screen.getAllByRole('link', { name: /^Check on Cardmarket for / });
+    expect(links).toHaveLength(2);
+    for (const l of links) {
+      expect(l.getAttribute('href')).toMatch(/^https:\/\/www\.cardmarket\.com\/en\/Pokemon\/Products\/Search\?searchString=/);
+      expect(l).toHaveAttribute('target', '_blank');
+      expect(l).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(l).toHaveTextContent('Check on Cardmarket');
+    }
+  });
   it('shows the nothing-matches panel when filters removed every deal', () => {
     render(<DealFeed deals={[]} now={NOW} lastCheckedAt={NOW} filter={{ active: true, totalBefore: 4, clearHref: '?tab=deals' }} />);
     expect(screen.getByText('Nothing matches your filters.')).toBeInTheDocument();
