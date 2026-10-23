@@ -46,6 +46,18 @@ describe('ingestListings in batches', () => {
   });
 });
 
+describe('ingestListings edition and rarity', () => {
+  it('stores edition and rarity, updates edition on a later run, and sets the product rarity', async () => {
+    await ingestListings(db, fakeProvider('cardtrader', [makeListing({ edition: 'first_edition', rarity: 'Holo Rare' })]), SET, T1);
+    const [row] = await db.select().from(listings);
+    expect(row).toMatchObject({ edition: 'first_edition', rarity: 'Holo Rare' });
+    const [prod] = await db.select().from(products).where(eq(products.cardmarketId, 895551));
+    expect(prod.rarity).toBe('Holo Rare');
+    await ingestListings(db, fakeProvider('cardtrader', [makeListing({ edition: 'shadowless', rarity: 'Holo Rare' })]), SET, T2);
+    expect((await db.select().from(listings))[0].edition).toBe('shadowless');
+  });
+});
+
 describe('ingestListings', () => {
   it('stores product pictures and TCGplayer ids from the provider', async () => {
     const provider = { marketplace: 'cardtrader' as const, fetchListings: async () => ({

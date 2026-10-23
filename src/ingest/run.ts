@@ -57,11 +57,21 @@ export async function runIngestion(
   mode: IngestMode = 'all',
 ): Promise<IngestionReport[]> {
   const reports: IngestionReport[] = [];
+  // The Cardmarket catalogs and price guide are the same for every set: download each URL once.
+  const cache = new Map<string, Promise<unknown>>();
+  const fetchJson = (url: string) => {
+    let hit = cache.get(url);
+    if (!hit) {
+      hit = deps.fetchJson(url);
+      cache.set(url, hit);
+    }
+    return hit;
+  };
   for (const set of sets) {
     const report: IngestionReport = { set: set.key, providers: [] };
     if (mode !== 'listings') {
       try {
-        const { products, snapshots } = await ingestCardmarket(db, { fetchJson: deps.fetchJson }, set);
+        const { products, snapshots } = await ingestCardmarket(db, { fetchJson }, set);
         report.cardmarket = { products, snapshots };
       } catch (err) {
         // Providers still run against the previous market values.
@@ -82,7 +92,7 @@ export async function runIngestion(
         report.fx = { error: messageOf(err) };
       }
     }
-    if (mode !== 'listings' && deps.ppt) {
+    if (mode !== 'listings' && deps.ppt && set.usPrices) {
       try {
         report.usPrices = await ingestUsReferencePrices(db, deps.ppt, set.key, now);
       } catch (err) {

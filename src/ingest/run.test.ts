@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { missingIngestSecrets, parseIngestMode, runIngestion } from './run';
-import { THIRTIETH_CELEBRATION as SET } from '@/config/sets';
+import { THIRTIETH_CELEBRATION as SET, JUNGLE } from '@/config/sets';
+import { cardmarketFetch } from '../../test/helpers/cardmarket';
 import { createTestDb } from '../../test/helpers/db';
 import { fakeProvider } from '../../test/helpers/fake-provider';
 import type { PptClient } from '@/providers/ppt/client';
@@ -55,6 +56,19 @@ describe('runIngestion modes', () => {
     expect(report.usPrices).toBeUndefined();
     expect(fetchJson).not.toHaveBeenCalled();
     expect(fetchText).not.toHaveBeenCalled();
+    expect(Object.values(ppt).every((f) => (f as ReturnType<typeof vi.fn>).mock.calls.length === 0)).toBe(true);
+  });
+});
+
+describe('runIngestion with several sets', () => {
+  it('downloads each Cardmarket URL once and skips US prices for sets without them', async () => {
+    const db = await createTestDb();
+    const inner = cardmarketFetch();
+    const fetchJson = vi.fn(inner);
+    const ppt = { fetchSetPrices: vi.fn(), fetchCardPrice: vi.fn() } as unknown as PptClient;
+    const noUs = { ...JUNGLE, usPrices: false };
+    await runIngestion(db, { fetchJson, ppt, providers: [] }, [noUs, { ...noUs, key: 'fossil' }], new Date('2026-10-20T12:00:00Z'), 'daily');
+    expect(fetchJson).toHaveBeenCalledTimes(3);
     expect(Object.values(ppt).every((f) => (f as ReturnType<typeof vi.fn>).mock.calls.length === 0)).toBe(true);
   });
 });

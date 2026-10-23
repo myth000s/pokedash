@@ -1,0 +1,577 @@
+{
+  "id": "8530cc97-a3c8-415c-b13c-c1a46a952340",
+  "prevId": "2327ca04-5688-42db-b94e-d11da3315574",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.benchmark_snapshots": {
+      "name": "benchmark_snapshots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'cardmarket_price_guide'"
+        },
+        "captured_at": {
+          "name": "captured_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "avg_cents": {
+          "name": "avg_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "low_cents": {
+          "name": "low_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trend_cents": {
+          "name": "trend_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avg1_cents": {
+          "name": "avg1_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avg7_cents": {
+          "name": "avg7_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avg30_cents": {
+          "name": "avg30_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avg_holo_cents": {
+          "name": "avg_holo_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "low_holo_cents": {
+          "name": "low_holo_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trend_holo_cents": {
+          "name": "trend_holo_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avg1_holo_cents": {
+          "name": "avg1_holo_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avg7_holo_cents": {
+          "name": "avg7_holo_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avg30_holo_cents": {
+          "name": "avg30_holo_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "benchmark_snapshots_product_id_products_id_fk": {
+          "name": "benchmark_snapshots_product_id_products_id_fk",
+          "tableFrom": "benchmark_snapshots",
+          "tableTo": "products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "benchmark_snapshots_product_captured_uq": {
+          "name": "benchmark_snapshots_product_captured_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "product_id",
+            "captured_at"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fx_rates": {
+      "name": "fx_rates",
+      "schema": "",
+      "columns": {
+        "rate_date": {
+          "name": "rate_date",
+          "type": "date",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "usd_per_eur": {
+          "name": "usd_per_eur",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.listing_price_history": {
+      "name": "listing_price_history",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "listing_id": {
+          "name": "listing_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price_cents": {
+          "name": "price_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shipping_cents": {
+          "name": "shipping_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "observed_at": {
+          "name": "observed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "listing_price_history_listing_id_listings_id_fk": {
+          "name": "listing_price_history_listing_id_listings_id_fk",
+          "tableFrom": "listing_price_history",
+          "tableTo": "listings",
+          "columnsFrom": [
+            "listing_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.listings": {
+      "name": "listings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "marketplace": {
+          "name": "marketplace",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price_cents": {
+          "name": "price_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shipping_cents": {
+          "name": "shipping_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "condition": {
+          "name": "condition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "language": {
+          "name": "language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_reverse_holo": {
+          "name": "is_reverse_holo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "edition": {
+          "name": "edition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unlimited'"
+        },
+        "rarity": {
+          "name": "rarity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seller_country": {
+          "name": "seller_country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "available": {
+          "name": "available",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "first_seen_at": {
+          "name": "first_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "listings_product_id_idx": {
+          "name": "listings_product_id_idx",
+          "columns": [
+            {
+              "expression": "product_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "listings_available_language_idx": {
+          "name": "listings_available_language_idx",
+          "columns": [
+            {
+              "expression": "available",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "language",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "listings_product_id_products_id_fk": {
+          "name": "listings_product_id_products_id_fk",
+          "tableFrom": "listings",
+          "tableTo": "products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "listings_marketplace_external_uq": {
+          "name": "listings_marketplace_external_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "marketplace",
+            "external_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.products": {
+      "name": "products",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cardmarket_id": {
+          "name": "cardmarket_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_name": {
+          "name": "category_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cardmarket_expansion_id": {
+          "name": "cardmarket_expansion_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "set_key": {
+          "name": "set_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tcgplayer_id": {
+          "name": "tcgplayer_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rarity": {
+          "name": "rarity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "products_cardmarket_id_unique": {
+          "name": "products_cardmarket_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "cardmarket_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.us_reference_prices": {
+      "name": "us_reference_prices",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "captured_at": {
+          "name": "captured_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "captured_day": {
+          "name": "captured_day",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usd_cents": {
+          "name": "usd_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "us_reference_prices_product_id_products_id_fk": {
+          "name": "us_reference_prices_product_id_products_id_fk",
+          "tableFrom": "us_reference_prices",
+          "tableTo": "products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "us_reference_prices_product_day_uq": {
+          "name": "us_reference_prices_product_day_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "product_id",
+            "captured_day"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

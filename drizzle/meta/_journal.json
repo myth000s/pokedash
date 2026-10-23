@@ -57,6 +57,13 @@
       "when": 1792600174818,
       "tag": "0007_drop_seller_name",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792776704841,
+      "tag": "0008_last_sentinel",
+      "breakpoints": true
     }
   ]
 }

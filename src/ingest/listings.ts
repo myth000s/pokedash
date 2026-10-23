@@ -24,6 +24,8 @@ const UPSERT_SET = {
   condition: sql`excluded.condition`,
   language: sql`excluded.language`,
   isReverseHolo: sql`excluded.is_reverse_holo`,
+  edition: sql`excluded.edition`,
+  rarity: sql`excluded.rarity`,
   sellerCountry: sql`excluded.seller_country`,
   imageUrl: sql`excluded.image_url`,
   available: sql`excluded.available`,
@@ -73,6 +75,15 @@ export async function ingestListings(
     }
     // Last occurrence wins, as the old one-by-one upsert did; Postgres rejects a batch
     // that updates the same row twice.
+    // A product's rarity is the first non-null one among its listings in this run.
+    const rarityByProductId = new Map<number, string>();
+    for (const l of result.listings) {
+      const productId = productIdByCardmarketId.get(l.cardmarketProductId);
+      if (productId !== undefined && l.rarity && !rarityByProductId.has(productId)) rarityByProductId.set(productId, l.rarity);
+    }
+    for (const [productId, rarity] of rarityByProductId) {
+      await tx.update(products).set({ rarity }).where(eq(products.id, productId));
+    }
     const rowsByExternalId = new Map<string, typeof listings.$inferInsert>();
     let upserted = 0;
     for (const l of result.listings) {
@@ -94,6 +105,8 @@ export async function ingestListings(
         condition: l.condition,
         language: l.language,
         isReverseHolo: l.isReverseHolo,
+        edition: l.edition,
+        rarity: l.rarity,
         sellerCountry: l.sellerCountry,
         imageUrl: l.imageUrl,
         available: true,
