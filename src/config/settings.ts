@@ -1,4 +1,5 @@
 import type { Condition } from '@/domain/types';
+import type { TrackedSet } from './sets';
 
 export interface DealSettings {
   minDiscountPct: number;
@@ -19,6 +20,13 @@ export const DEFAULT_DEAL_SETTINGS: DealSettings = {
   languages: ['en', 'de'],
   dealConditions: ['mint', 'near_mint'],
 };
+
+const VINTAGE_DEAL_CONDITIONS: Condition[] = ['mint', 'near_mint', 'slightly_played', 'moderately_played'];
+
+/** Vintage cards are mostly played, so their deals look at more conditions. */
+export function dealConditionsFor(set: TrackedSet): Condition[] {
+  return set.era === 'vintage' ? [...VINTAGE_DEAL_CONDITIONS] : [...DEFAULT_DEAL_SETTINGS.dealConditions];
+}
 
 /** How long rows are kept before the daily cleanup deletes them. */
 export const RETENTION_DAYS = {

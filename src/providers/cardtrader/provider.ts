@@ -7,11 +7,19 @@ import type { CtBlueprint } from './schema';
 const LANGUAGES = ['en', 'de'] as const;
 
 export function createCardTraderProvider(client: CardTraderClient): ListingProvider {
+  // One expansions call serves every set for the provider's lifetime.
+  let expansionsPromise: ReturnType<CardTraderClient['expansions']> | undefined;
+  const expansionsOnce = () => {
+    expansionsPromise ??= client.expansions();
+    expansionsPromise.catch(() => { expansionsPromise = undefined; });
+    return expansionsPromise;
+  };
   return {
     marketplace: 'cardtrader',
     async fetchListings(set, trackedCardmarketIds) {
-      const expansions = (await client.expansions())
-        .filter((e) => e.name.startsWith(set.cardtraderExpansionPrefix))
+      const ids = set.cardtraderExpansionIds;
+      const expansions = (await expansionsOnce())
+        .filter((e) => (ids ? ids.includes(e.id) : e.name.startsWith(set.cardtraderExpansionPrefix)))
         .sort((a, b) => a.id - b.id);
       if (expansions.length === 0) {
         throw new Error(`No CardTrader expansion matches "${set.cardtraderExpansionPrefix}"`);
@@ -28,7 +36,9 @@ export function createCardTraderProvider(client: CardTraderClient): ListingProvi
           const byBlueprint = await client.marketplaceProducts(expansion.id, language);
           for (const products of Object.values(byBlueprint)) {
             for (const product of products) {
-              const r = normalizeCtProduct(product, blueprints.get(product.blueprint_id), trackedCardmarketIds);
+              const r = normalizeCtProduct(product, blueprints.get(product.blueprint_id), trackedCardmarketIds, {
+                set, expansionId: expansion.id,
+              });
               if ('listing' in r && r.listing.language !== language) {
                 result.skipped.push({ externalId: String(product.id), reason: 'Unexpected language' });
               } else if ('listing' in r) result.listings.push(r.listing);

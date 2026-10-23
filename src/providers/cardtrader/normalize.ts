@@ -1,4 +1,5 @@
-import type { NormalizedListing } from '@/domain/types';
+import type { TrackedSet } from '@/config/sets';
+import type { Edition, NormalizedListing } from '@/domain/types';
 import { CT_CONDITIONS, CT_LANGUAGE_KEY, CT_REVERSE_KEY, type CtBlueprint, type CtProduct } from './schema';
 
 const CT_IMAGE_HOSTS = new Set(['cardtrader.com', 'www.cardtrader.com']);
@@ -19,6 +20,7 @@ export function normalizeCtProduct(
   p: CtProduct,
   blueprint: CtBlueprint | undefined,
   tracked: ReadonlySet<number>,
+  ctx: { set: TrackedSet; expansionId: number },
 ): { listing: NormalizedListing } | { skip: string } {
   if (!blueprint) return { skip: 'Unknown blueprint' };
 
@@ -42,6 +44,15 @@ export function normalizeCtProduct(
   const rawCondition = p.properties_hash.condition;
   const condition = typeof rawCondition === 'string' ? (CT_CONDITIONS[rawCondition] ?? null) : null;
 
+  const firstEdition = ctx.set.hasFirstEdition && p.properties_hash.first_edition === true;
+  const edition: Edition = firstEdition
+    ? 'first_edition'
+    : ctx.set.shadowlessExpansionId !== undefined && ctx.expansionId === ctx.set.shadowlessExpansionId
+      ? 'shadowless'
+      : 'unlimited';
+  const rawRarity = p.properties_hash.pokemon_rarity;
+  const rarity = typeof rawRarity === 'string' && rawRarity !== '' ? rawRarity : null;
+
   return {
     listing: {
       marketplace: 'cardtrader',
@@ -57,6 +68,8 @@ export function normalizeCtProduct(
       isReverseHolo: p.properties_hash[CT_REVERSE_KEY] === true,
       sellerCountry: p.user.country_code ?? null,
       imageUrl: safeCardTraderImageUrl(blueprint.image_url),
+      edition,
+      rarity,
     },
   };
 }

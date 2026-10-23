@@ -15,6 +15,8 @@ export function makeListing(over: Partial<NormalizedListing> = {}): NormalizedLi
     isReverseHolo: false,
     sellerCountry: 'DE',
     imageUrl: null,
+    edition: 'unlimited',
+    rarity: null,
     ...over,
   };
 }
