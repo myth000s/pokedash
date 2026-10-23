@@ -1,9 +1,9 @@
-import { and, desc, eq, inArray, max } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte, max, sql } from 'drizzle-orm';
 import { benchmarkSnapshots, listings, products } from '@/db/schema';
 import type { Db } from '@/db/client';
 import { DEFAULT_DEAL_SETTINGS, dealConditionsFor, type DealSettings } from '@/config/settings';
 import { findSet } from '@/config/sets';
-import { referenceValues, type PoolListing } from '@/deals/reference';
+import { MIN_GROUP_SIZE, rankedOffers } from '@/deals/rankedOffers';
 import { markStaleListing, scoreListing } from '@/scoring/score';
 import type {
   BenchmarkAssessment, BenchmarkSnapshot, Condition, Edition, Marketplace, ProductKind, ScoredListing,
@@ -62,69 +62,84 @@ export function enDeBenchmark(value: number | null, now: Date): BenchmarkAssessm
   };
 }
 
+/**
+ * The current deals, biggest € saving first. The pool is ranked in SQL (rankedOffers): only the two
+ * cheapest offers of a group of 4+ can be 20% below the second-cheapest other one, and of those only
+ * the rows that pass the value and discount rules come back. `setKey` narrows it to one set.
+ */
 export async function getDealFeed(
   db: Db,
-  opts: { now: Date; settings?: DealSettings; includeNonDeals?: boolean },
+  opts: { now: Date; settings?: DealSettings; setKey?: string | null },
 ): Promise<DealView[]> {
   const settings = opts.settings ?? DEFAULT_DEAL_SETTINGS;
-
-  const rows = await db
-    .select({ listing: listings, product: products })
-    .from(listings)
-    .innerJoin(products, eq(listings.productId, products.id))
-    .where(and(eq(listings.available, true), inArray(listings.language, ['en', 'de'])));
+  const { ctes, ranked } = rankedOffers(db, {
+    now: opts.now, maxAgeHours: settings.maxListingAgeHours,
+    where: opts.setKey ? [eq(products.setKey, opts.setKey)] : [],
+  });
+  const delivered = sql`(${listings.priceCents} + coalesce(${listings.shippingCents}, 0))`;
+  const rows = await db.with(...ctes)
+    .select({
+      listingId: listings.id, marketplace: listings.marketplace, url: listings.url,
+      condition: listings.condition, language: listings.language, isReverseHolo: listings.isReverseHolo,
+      sellerCountry: listings.sellerCountry, imageUrl: listings.imageUrl,
+      priceCents: listings.priceCents, shippingCents: listings.shippingCents, currency: listings.currency,
+      lastSeenAt: listings.lastSeenAt, edition: listings.edition, rarity: listings.rarity,
+      productId: products.id, productName: products.name, kind: products.kind, setKey: products.setKey,
+      cardmarketProductId: products.cardmarketId, reference: ranked.reference,
+    })
+    .from(ranked)
+    .innerJoin(listings, eq(listings.id, ranked.id))
+    .innerJoin(products, eq(products.id, listings.productId))
+    .where(and(
+      lte(ranked.rn, 2),
+      gte(ranked.n, MIN_GROUP_SIZE),
+      // The value and discount rules of scoreListing, in the same float8 arithmetic as JavaScript.
+      gte(ranked.reference, settings.minBenchmarkCents),
+      sql`(${ranked.reference} - ${delivered})::float8 / ${ranked.reference}::float8 >= ${settings.minDiscountPct}::float8`,
+    ));
   if (rows.length === 0) return [];
 
   // Latest snapshot per product = greatest capturedAt, not the most recently inserted row.
-  const productIds = [...new Set(rows.map((r) => r.product.id))];
   const snapshotRows = await db
-    .selectDistinctOn([benchmarkSnapshots.productId])
+    .selectDistinctOn([benchmarkSnapshots.productId], {
+      productId: benchmarkSnapshots.productId, trendCents: benchmarkSnapshots.trendCents, trendHoloCents: benchmarkSnapshots.trendHoloCents,
+    })
     .from(benchmarkSnapshots)
-    .where(inArray(benchmarkSnapshots.productId, productIds))
+    .where(inArray(benchmarkSnapshots.productId, [...new Set(rows.map((r) => r.productId))]))
     .orderBy(benchmarkSnapshots.productId, desc(benchmarkSnapshots.capturedAt));
   const latest = new Map(snapshotRows.map((s) => [s.productId, s]));
 
-  // Sealed products have no condition; they compare as one Near Mint-like group.
-  const poolCondition = (kind: string, c: Condition | null): Condition | null => (kind === 'sealed' && c === null ? 'near_mint' : c);
-  const pool: PoolListing[] = rows.map(({ listing: l, product: p }) => ({
-    id: l.id, productId: l.productId, edition: l.edition as Edition, condition: poolCondition(p.kind, l.condition as Condition | null),
-    isReverseHolo: l.isReverseHolo, priceCents: l.priceCents, language: l.language, currency: l.currency,
-    available: l.available, lastSeenAt: l.lastSeenAt,
-  }));
-  const references = referenceValues(pool, opts.now, settings.maxListingAgeHours);
-
-  const views: DealView[] = rows.map(({ listing: l, product: p }) => {
-    const snap = latest.get(p.id);
-    const kind = p.kind as ProductKind;
-    const value = references.get(l.id) ?? null;
-    const benchmark = enDeBenchmark(value, opts.now);
-    const condition = l.condition as Condition | null;
-    const dealSettings = dealSettingsFor(settings, p.setKey);
+  const views: DealView[] = rows.map((r) => {
+    const snap = latest.get(r.productId);
+    const kind = r.kind as ProductKind;
+    const benchmark = enDeBenchmark(r.reference, opts.now);
+    const condition = r.condition as Condition | null;
     const score = markStaleListing(
       scoreListing(
-        { priceCents: l.priceCents, shippingCents: l.shippingCents, currency: l.currency, condition, language: l.language, kind },
+        { priceCents: r.priceCents, shippingCents: r.shippingCents, currency: r.currency, condition, language: r.language, kind },
         benchmark,
-        dealSettings,
+        dealSettingsFor(settings, r.setKey),
       ),
-      l.lastSeenAt, opts.now, settings.maxListingAgeHours,
+      r.lastSeenAt, opts.now, settings.maxListingAgeHours,
     );
     return {
-      listingId: l.id, productName: p.name, kind, marketplace: l.marketplace as Marketplace, url: l.url,
-      condition, language: l.language, isReverseHolo: l.isReverseHolo, sellerCountry: l.sellerCountry, imageUrl: l.imageUrl,
-      priceCents: l.priceCents, shippingCents: l.shippingCents, currency: l.currency, lastSeenAt: l.lastSeenAt,
+      listingId: r.listingId, productName: r.productName, kind, marketplace: r.marketplace as Marketplace, url: r.url,
+      condition, language: r.language, isReverseHolo: r.isReverseHolo, sellerCountry: r.sellerCountry, imageUrl: r.imageUrl,
+      priceCents: r.priceCents, shippingCents: r.shippingCents, currency: r.currency, lastSeenAt: r.lastSeenAt,
       benchmark, score,
-      edition: l.edition as Edition, rarity: l.rarity, setKey: p.setKey,
-      cardmarketValueCents: snap ? (l.isReverseHolo ? snap.trendHoloCents : snap.trendCents) : null,
-      cardmarketProductId: p.cardmarketId,
+      edition: r.edition as Edition, rarity: r.rarity, setKey: r.setKey,
+      cardmarketValueCents: snap ? (r.isReverseHolo ? snap.trendHoloCents : snap.trendCents) : null,
+      cardmarketProductId: r.cardmarketProductId,
     };
   });
 
   return views
-    .filter((v) => opts.includeNonDeals || v.score.isDeal)
+    .filter((v) => v.score.isDeal)
     .sort((a, b) =>
       byDescNullsLast(a.score.discountCents, b.score.discountCents)
       || byDescNullsLast(a.score.discountPct, b.score.discountPct)
-      || b.lastSeenAt.getTime() - a.lastSeenAt.getTime());
+      || b.lastSeenAt.getTime() - a.lastSeenAt.getTime()
+      || a.listingId - b.listingId);
 }
 
 export async function getLastCheckedAt(db: Db): Promise<Date | null> {

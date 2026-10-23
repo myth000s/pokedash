@@ -68,19 +68,26 @@ describe('getDealFeed', () => {
     await seedEtb();
     expect((await getDealFeed(db, { now: NOW }))[0].cardmarketValueCents).toBe(13295);
   });
-  it('hides non-deals unless asked', async () => {
+  it('hides non-deals', async () => {
     await seed(
       { priceCents: 12900 }, { externalId: 'ct-b1', priceCents: 13000 },
       { externalId: 'ct-b2', priceCents: 13100 }, { externalId: 'ct-b3', priceCents: 13200 },
     );
     expect(await getDealFeed(db, { now: NOW })).toEqual([]);
-    const all = await getDealFeed(db, { now: NOW, includeNonDeals: true });
-    expect(all.find((d) => d.priceCents === 12900)!.score.notDealReasons).toEqual(['Only 2% below market value (needs 20%)']);
   });
   it('excludes unavailable listings', async () => {
-    await seed({});
+    await seedEtb();
+    expect(await getDealFeed(db, { now: NOW })).toHaveLength(1);
     await ingestListings(db, fakeProvider('cardtrader', []), SET, new Date('2026-10-19T12:15:00Z'));
-    expect(await getDealFeed(db, { now: NOW, includeNonDeals: true })).toEqual([]);
+    expect(await getDealFeed(db, { now: NOW })).toEqual([]);
+  });
+  it('narrows the feed to one set', async () => {
+    await seedEtb();
+    const p = await addProduct('base-set', 7010);
+    await addOffers(p.id, [7900, 10000, 10000, 10000]);
+    expect((await getDealFeed(db, { now: NOW })).map((d) => d.setKey).sort()).toEqual(['30th-celebration', 'base-set']);
+    expect((await getDealFeed(db, { now: NOW, setKey: 'base-set' })).map((d) => d.setKey)).toEqual(['base-set']);
+    expect(await getDealFeed(db, { now: NOW, setKey: 'jungle' })).toEqual([]);
   });
   it('sorts by euro saving, biggest first', async () => {
     // ETB saves €26.00 (21%); Knock Out saves €11.00 (31%): € saving wins.
@@ -94,27 +101,18 @@ describe('getDealFeed', () => {
     const feed = await getDealFeed(db, { now: NOW });
     expect(feed.map((d) => d.productName)).toEqual(['30th Celebration Elite Trainer Box', '30th Celebration: Knock Out Collection']);
   });
-  it('marks a product with too few offers as insufficient', async () => {
-    const [p] = await db.insert(products).values({
-      cardmarketId: 1, name: 'No Data Box', kind: 'sealed', categoryName: 'Boxes',
-      cardmarketExpansionId: 6601, setKey: 'test', updatedAt: NOW,
-    }).returning();
-    await db.insert(listings).values({
-      marketplace: 'cardtrader', externalId: 'nodata', productId: p.id, title: 'x', url: 'https://x',
-      priceCents: 1000, currency: 'EUR', language: 'en', firstSeenAt: NOW, lastSeenAt: NOW,
-    });
-    const [deal] = await getDealFeed(db, { now: NOW, includeNonDeals: true });
-    expect(deal.benchmark.confidence).toBe('insufficient');
-    expect(deal.score.notDealReasons).toEqual(['Too few EN/DE offers to compare']);
-    expect(deal.cardmarketValueCents).toBeNull();
+  it('does not offer a product with too few offers, however cheap', async () => {
+    const p = await addProduct('30th-celebration', 7011, 'sealed');
+    // 3 offers: the cheap one has only 2 others to compare with.
+    await addOffers(p.id, [1000, 10000, 10000], { condition: null });
+    expect(await getDealFeed(db, { now: NOW })).toEqual([]);
+    await addOffers(p.id, [10000], { condition: null, externalId: 'fourth' });
+    expect(await getDealFeed(db, { now: NOW })).toMatchObject([{ priceCents: 1000, benchmark: { valueCents: 10000 }, cardmarketValueCents: null }]);
   });
   it('does not offer a listing that was last seen more than 3 days ago as a deal', async () => {
     await seedEtb();
-    const later = new Date(NOW.getTime() + 80 * 3_600_000);
-    expect(await getDealFeed(db, { now: later })).toEqual([]);
-    const [all] = await getDealFeed(db, { now: later, includeNonDeals: true });
-    expect(all.score.isDeal).toBe(false);
-    expect(all.score.notDealReasons).toContain('Listing not seen for 3 days');
+    expect(await getDealFeed(db, { now: new Date(NOW.getTime() + 72 * 3_600_000) })).toHaveLength(1);
+    expect(await getDealFeed(db, { now: new Date(NOW.getTime() + 72 * 3_600_000 + 1) })).toEqual([]);
   });
   it('reports when listings were last checked', async () => {
     expect(await getLastCheckedAt(db)).toBeNull();
@@ -132,8 +130,6 @@ describe('getDealFeed', () => {
     const p = await addProduct('30th-celebration', 7002);
     await addOffers(p.id, [5000, 10000, 10000, 10000], { condition: 'slightly_played' });
     expect(await getDealFeed(db, { now: NOW })).toEqual([]);
-    const all = await getDealFeed(db, { now: NOW, includeNonDeals: true });
-    expect(all.find((d) => d.priceCents === 5000)!.score.notDealReasons).toEqual(['Condition below Near Mint']);
   });
   it('offers a vintage Moderately Played listing 30% below its MP reference', async () => {
     const p = await addProduct('base-set', 7003);

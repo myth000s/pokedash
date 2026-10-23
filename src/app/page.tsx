@@ -34,8 +34,10 @@ async function Feed({ searchParams }: { searchParams: PageProps<'/'>['searchPara
   const vintageUi = showsVintageFilters(parsed);
   const sectionEdition = sectionSet.era === 'vintage' ? edition ?? 'unlimited' : undefined;
   const sectionCondition = sectionSet.era === 'vintage' ? parsed.condition ?? 'nm' : undefined;
-  const [allDeals, stats, counts, rarities] = await Promise.all([
-    getDealFeed(db, { now }),
+  // The deal feed of the shown set only (all sets on Deals with no set). Singles and Sealed need it
+  // just for the deal count and best saving; the query returns deals only, so it stays small.
+  const [setDeals, stats, counts, rarities] = await Promise.all([
+    getDealFeed(db, { now, setKey: set?.key ?? null }),
     getFeedStats(db, set?.key ?? null),
     getSectionCounts(db, sectionSet.key, now, { edition: sectionEdition, conditionGroup: sectionCondition }),
     tab === 'sealed' ? Promise.resolve<string[]>([]) : getAvailableRarities(db, tab === 'deals' ? set?.key ?? null : sectionSet.key),
@@ -45,8 +47,7 @@ async function Feed({ searchParams }: { searchParams: PageProps<'/'>['searchPara
     ...parsed, edition,
     rarities: tab === 'sealed' ? parsed.rarities : parsed.rarities.filter((r) => rarities.includes(r)),
   };
-  const setDeals = set ? allDeals.filter((d) => d.setKey === set.key) : allDeals;
-  const deals = filterDeals(allDeals, {
+  const deals = tab !== 'deals' ? [] : filterDeals(setDeals, {
     ...params, edition: vintageUi ? edition : null, condition: vintageUi ? params.condition : null,
   });
   const filterActive = hasActiveFilters(params);
