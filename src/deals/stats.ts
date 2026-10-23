@@ -1,6 +1,7 @@
-import { and, count, eq, max } from 'drizzle-orm';
+import { and, count, eq, inArray, max } from 'drizzle-orm';
 import { benchmarkSnapshots, listings, products } from '@/db/schema';
 import type { Db } from '@/db/client';
+import { TRACKED_SETS } from '@/config/sets';
 
 export interface FeedStats {
   listingsChecked: number;
@@ -9,8 +10,8 @@ export interface FeedStats {
   lastCheckedAt: Date | null;
 }
 
-export async function getFeedStats(db: Db, setKey: string): Promise<FeedStats> {
-  const inSet = eq(products.setKey, setKey);
+export async function getFeedStats(db: Db, setKey: string | null): Promise<FeedStats> {
+  const inSet = setKey === null ? inArray(products.setKey, TRACKED_SETS.map((s) => s.key)) : eq(products.setKey, setKey);
   const [[tracked], [checked], [values], [seen]] = await Promise.all([
     db.select({ n: count() }).from(products).where(inSet),
     db.select({ n: count() }).from(listings)

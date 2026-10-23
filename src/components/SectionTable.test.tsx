@@ -15,7 +15,7 @@ function row(over: Partial<SectionRow> = {}): SectionRow {
       listingId: 1, url: 'https://www.cardtrader.com/cards/399230', priceCents: 9900, language: 'en', sellerCountry: 'DE',
       score: { discountPct: 0.2554, discountCents: 3395, isDeal: true, warnings: [] } as unknown as ScoredListing,
     },
-    offerCount: 2,
+    offerCount: 2, cardmarketValueCents: null, rarity: null, edition: 'unlimited', cardmarketProductId: 1,
     ...over,
   };
 }

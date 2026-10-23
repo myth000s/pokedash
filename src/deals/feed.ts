@@ -46,6 +46,16 @@ export function byDescNullsLast(a: number | null, b: number | null): number {
   return b - a;
 }
 
+/** The benchmark for a reference value computed from current EN/DE offers; null means too few offers. */
+export function enDeBenchmark(value: number | null, now: Date): BenchmarkAssessment {
+  return {
+    valueCents: value, basis: 'en_de_offers',
+    confidence: value === null ? 'insufficient' : 'high',
+    reasons: value === null ? ['Too few EN/DE offers to compare'] : [],
+    capturedAt: now,
+  };
+}
+
 export async function getDealFeed(
   db: Db,
   opts: { now: Date; settings?: DealSettings; includeNonDeals?: boolean },
@@ -81,12 +91,7 @@ export async function getDealFeed(
     const snap = latest.get(p.id);
     const kind = p.kind as ProductKind;
     const value = references.get(l.id) ?? null;
-    const benchmark: BenchmarkAssessment = {
-      valueCents: value, basis: 'en_de_offers',
-      confidence: value === null ? 'insufficient' : 'high',
-      reasons: value === null ? ['Too few EN/DE offers to compare'] : [],
-      capturedAt: opts.now,
-    };
+    const benchmark = enDeBenchmark(value, opts.now);
     const condition = l.condition as Condition | null;
     const set = findSet(p.setKey);
     const dealSettings = set ? { ...settings, dealConditions: dealConditionsFor(set) } : settings;
