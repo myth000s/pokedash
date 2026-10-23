@@ -75,6 +75,16 @@ describe('referenceValues', () => {
   });
 });
 
+describe('referenceValues at scale', () => {
+  it('handles a group of 2,000 quickly and exactly', () => {
+    const pool = nm(...Array.from({ length: 2000 }, (_, i) => 1000 + i));
+    const t0 = performance.now();
+    const ref = referenceValues(pool, NOW, 72);
+    expect(performance.now() - t0).toBeLessThan(200);
+    expect([0, 1, 2, 1999].map((i) => ref.get(pool[i].id))).toEqual([1002, 1002, 1001, 1001]);
+  });
+});
+
 describe('cheapestReference', () => {
   it('is the middle of the 3 cheapest', () => {
     expect(cheapestReference([5, 1, 3])).toBe(3);

@@ -46,8 +46,8 @@ export function referenceValues(pool: PoolListing[], now: Date, maxAgeHours: num
     const sorted = [...members].sort((a, b) => a.priceCents - b.priceCents);
     sorted.forEach((l, i) => {
       if (sorted.length - 1 < MIN_OTHERS) { result.set(l.id, null); return; }
-      const others = sorted.filter((_, j) => j !== i);
-      result.set(l.id, others[1].priceCents);
+      // Second-cheapest other: skipping a member of the two cheapest shifts it to index 2.
+      result.set(l.id, (i <= 1 ? sorted[2] : sorted[1]).priceCents);
     });
   }
   return result;
