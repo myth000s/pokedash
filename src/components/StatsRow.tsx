@@ -22,7 +22,7 @@ export function StatsRow({ dealCount, bestSavingCents, stats, now }: {
       <Tile label="Best saving" value={bestSavingCents === null ? '–' : formatEuro(bestSavingCents)} gold />
       <Tile label="Listings checked" value={formatCount(stats.listingsChecked)} />
       <Tile label="Products tracked" value={formatCount(stats.productsTracked)} />
-      <Tile label="Market values" value={formatFreshness(stats.marketValuesAt, now)} />
+      <Tile label="Cardmarket notes" value={formatFreshness(stats.marketValuesAt, now)} />
     </div>
   );
 }

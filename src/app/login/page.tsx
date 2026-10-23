@@ -42,7 +42,7 @@ export default function LoginPage() {
               pokedash
             </span>
           </h1>
-          <p className="mt-1 mb-6 text-sm text-mute">Pokémon TCG deals against Cardmarket market values.</p>
+          <p className="mt-1 mb-6 text-sm text-mute">Pokémon TCG deals against current EN/DE market values.</p>
           <Suspense fallback={<LoginSkeleton />}>
             <Login />
           </Suspense>

@@ -42,7 +42,7 @@ export function HeroDeal({ deal, now }: { deal: DealView; now: Date }) {
           </div>
           {benchmark.reasons.length > 0 && <p className="text-xs text-mute">{benchmark.reasons.join(' · ')}</p>}
           <p className="text-xs text-mute">
-            {`Market value from Cardmarket sales, updated ${formatAge(benchmark.capturedAt, now)} · listing seen ${formatAge(deal.lastSeenAt, now)}${shippingUnknown ? ' · shipping not included' : ''}`}
+            {`Market value from current EN/DE offers on CardTrader · listing seen ${formatAge(deal.lastSeenAt, now)}${shippingUnknown ? ' · shipping not included' : ''}`}
           </p>
         </div>
         <div className="flex flex-col gap-3 md:col-span-2 lg:col-span-1 lg:items-end lg:text-right">

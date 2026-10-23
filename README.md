@@ -1,6 +1,6 @@
 # pokedash
 
-A private dashboard that finds underpriced Pokémon TCG listings. It takes Cardmarket's public price guide as the market value (sales-based fields only), pulls listings from CardTrader and shows the ones priced well below market. The first tracked set is 30th Celebration.
+A private dashboard that finds underpriced Pokémon TCG listings. It pulls listings from CardTrader, works out a market value for each product from the current EN/DE offers there, and shows the listings priced well below it. Cardmarket's public price guide appears only as an "all languages" note. It tracks 30th Celebration and 15 WOTC sets.
 
 Kleinanzeigen is not supported on purpose: its terms ban scrapers.
 
@@ -46,7 +46,7 @@ On the first login you sign in with the starting password, set up an authenticat
 |---|---|---|
 | Website | Vercel (Hobby, region fra1) | Serves the Next.js app. It only reads the database. |
 | Database and logins | Supabase (Free, Ireland, eu-west-1) | Holds the Postgres database and the accounts. You log in with a password plus a code from an authenticator app (TOTP). |
-| Data updates | GitHub Actions | `ingest-listings` runs every 30 minutes; `ingest-daily` runs once a day (Cardmarket values, US prices, cleanup and a database size check). They share a concurrency group, so they never run at the same time. |
+| Data updates | GitHub Actions | `ingest-listings` runs every 30 minutes and its CardTrader listings are the basis of the market values; `ingest-daily` runs once a day (Cardmarket catalogue and price guide notes, US prices and exchange rate, cleanup and a database size check). They share a concurrency group, so they never run at the same time. |
 
 Nobody can sign up on their own: the owner creates accounts with a script, and pokedash sends no emails.
 

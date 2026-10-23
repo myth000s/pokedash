@@ -37,6 +37,10 @@ describe('DealFeed', () => {
     const a = render(<DealFeed deals={[vintage]} now={NOW} lastCheckedAt={NOW} />);
     expect(screen.getByText('1st Edition')).toBeInTheDocument();
     a.unmount();
+    const tile = render(<DealFeed deals={[vintage, deal({ listingId: 9, productName: 'Blastoise [Rain Dance]', kind: 'single', setKey: 'base-set', edition: 'shadowless' })]} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.getByText('1st Edition')).toBeInTheDocument(); // hero
+    expect(screen.getByText('Shadowless')).toBeInTheDocument(); // tile
+    tile.unmount();
     const b = render(<DealFeed deals={[deal(), deal({ listingId: 8, setKey: 'base-set', edition: 'shadowless' })]} now={NOW} lastCheckedAt={NOW} />);
     expect(screen.getAllByText('Shadowless')).toHaveLength(1);
     b.unmount();
