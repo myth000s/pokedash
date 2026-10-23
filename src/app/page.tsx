@@ -6,7 +6,7 @@ import { getDealFeed } from '@/deals/feed';
 import { getFeedStats } from '@/deals/stats';
 import { getAvailableRarities, getSectionCounts, getSectionRows } from '@/deals/sections';
 import { filterDeals } from '@/deals/filters';
-import { clearFiltersHref, effectiveSet, hasActiveFilters, parseDashboardParams, showsVintageFilters } from '@/lib/params';
+import { allowedEdition, clearFiltersHref, effectiveSet, hasActiveFilters, parseDashboardParams, showsVintageFilters } from '@/lib/params';
 import { TRACKED_SETS } from '@/config/sets';
 import { DealFeed } from '@/components/DealFeed';
 import { TopBar } from '@/components/TopBar';
@@ -22,25 +22,32 @@ import { FeedSkeleton } from '@/components/FeedSkeleton';
 async function Feed({ searchParams }: { searchParams: PageProps<'/'>['searchParams'] }) {
   await connection();
   await requireAal2();
-  const params = parseDashboardParams(await searchParams);
-  const { tab, allSingles, sealedType } = params;
+  const parsed = parseDashboardParams(await searchParams);
+  const { tab, allSingles, sealedType } = parsed;
   const now = new Date();
   const db = getDb();
   // Deals with no set span every tracked set; Singles and Sealed need one set, so they fall back to the first.
-  const set = effectiveSet(params);
+  const set = effectiveSet(parsed);
   const sectionSet = set ?? TRACKED_SETS[0];
-  const vintageUi = showsVintageFilters(params);
-  const sectionEdition = sectionSet.era === 'vintage' ? params.edition ?? 'unlimited' : undefined;
-  const sectionCondition = sectionSet.era === 'vintage' ? params.condition ?? 'nm' : undefined;
+  // A set switch must not carry an edition the set lacks.
+  const edition = allowedEdition(parsed);
+  const vintageUi = showsVintageFilters(parsed);
+  const sectionEdition = sectionSet.era === 'vintage' ? edition ?? 'unlimited' : undefined;
+  const sectionCondition = sectionSet.era === 'vintage' ? parsed.condition ?? 'nm' : undefined;
   const [allDeals, stats, counts, rarities] = await Promise.all([
     getDealFeed(db, { now }),
     getFeedStats(db, set?.key ?? null),
     getSectionCounts(db, sectionSet.key, now, { edition: sectionEdition, conditionGroup: sectionCondition }),
-    tab === 'sealed' ? [] : getAvailableRarities(db, tab === 'deals' ? set?.key ?? null : sectionSet.key),
+    tab === 'sealed' ? Promise.resolve<string[]>([]) : getAvailableRarities(db, tab === 'deals' ? set?.key ?? null : sectionSet.key),
   ]);
+  // ... nor rarities the set lacks (Sealed has no rarity control, so its rarities pass through untouched).
+  const params = {
+    ...parsed, edition,
+    rarities: tab === 'sealed' ? parsed.rarities : parsed.rarities.filter((r) => rarities.includes(r)),
+  };
   const setDeals = set ? allDeals.filter((d) => d.setKey === set.key) : allDeals;
   const deals = filterDeals(allDeals, {
-    ...params, edition: vintageUi ? params.edition : null, condition: vintageUi ? params.condition : null,
+    ...params, edition: vintageUi ? edition : null, condition: vintageUi ? params.condition : null,
   });
   const filterActive = hasActiveFilters(params);
   const clearHref = clearFiltersHref(params);
@@ -60,7 +67,7 @@ async function Feed({ searchParams }: { searchParams: PageProps<'/'>['searchPara
       {set?.era === 'vintage' && <EditionTabs params={params} set={set} />}
       <FilterBar params={params} rarities={rarities} />
       {tab === 'deals'
-        ? <DealFeed deals={deals} now={now} lastCheckedAt={stats.lastCheckedAt} filter={{ active: filterActive, totalBefore: setDeals.length, clearHref }} />
+        ? <DealFeed sort={params.sort} deals={deals} now={now} lastCheckedAt={stats.lastCheckedAt} filter={{ active: filterActive, totalBefore: setDeals.length, clearHref }} />
         : <SectionTable section={tab} rows={rows} allSingles={allSingles} sealedType={sealedType} params={params} filter={{ active: filterActive, totalBefore: counts[tab], clearHref }} />}
     </>
   );

@@ -41,7 +41,8 @@ export function FilterBar({ params, rarities = [] }: { params: DashboardParams; 
         </select>
       </Field>
       <Field label="Sort by" id="f-sort">
-        <select id="f-sort" name="sort" defaultValue={params.sort ?? 'saving'} className={FIELD}>
+        <select id="f-sort" name="sort" defaultValue={params.sort ?? (deals ? 'saving' : '')} className={FIELD}>
+          {!deals && <option value="">Market value</option>}
           <option value="saving">Biggest saving</option>
           <option value="cheapest">Cheapest first</option>
           <option value="expensive">Most expensive first</option>

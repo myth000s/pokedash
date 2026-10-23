@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clearFiltersHref, dashboardHref, hasActiveFilters, parseDashboardParams as parse } from './params';
+import { allowedEdition, clearFiltersHref, dashboardHref, hasActiveFilters, parseDashboardParams as parse } from './params';
 import { matchesQuery } from './search';
 
 const base = { q: '', lang: null, kind: null, minPct: null, maxPriceCents: null, set: null, edition: null, condition: null, rarities: [], sort: null };
@@ -114,13 +114,34 @@ describe('set, edition, condition, rarity and sort params', () => {
     expect(dashboardHref(p, { set: null, tab: 'singles' })).toBe('?tab=singles');
     expect(dashboardHref(p, { set: null })).toBe('?tab=deals&edition=first_edition&condition=sp');
   });
+  it('limits the edition to those the effective set offers', () => {
+    const e = (set: string | null, edition: 'first_edition' | 'shadowless' | 'unlimited', tab: 'deals' | 'singles' = 'singles') =>
+      allowedEdition({ tab, set, edition });
+    expect(e('base-set', 'shadowless')).toBe('shadowless');
+    expect(e('jungle', 'shadowless')).toBeNull();
+    expect(e('base-set-2', 'first_edition')).toBeNull();
+    expect(e('jungle', 'first_edition')).toBe('first_edition');
+    expect(e('jungle', 'unlimited')).toBe('unlimited');
+    expect(e('30th-celebration', 'unlimited')).toBeNull();
+    expect(e(null, 'shadowless', 'deals')).toBe('shadowless');
+    expect(allowedEdition({ tab: 'deals', set: 'jungle', edition: null })).toBeNull();
+  });
+  it('drops an edition the target set lacks from hrefs', () => {
+    const p = parse({ tab: 'singles', set: 'base-set', edition: 'shadowless' });
+    expect(dashboardHref(p, { set: 'jungle' })).toBe('?tab=singles&set=jungle');
+    expect(dashboardHref(p, { set: 'fossil', edition: 'first_edition' })).toBe('?tab=singles&set=fossil&edition=first_edition');
+  });
+  it('ignores a condition whose control is not shown when counting filters', () => {
+    expect(hasActiveFilters(parse({ set: '30th-celebration', condition: 'sp' }))).toBe(false);
+    expect(hasActiveFilters(parse({ tab: 'sealed', set: 'jungle', condition: 'sp' }))).toBe(false);
+  });
   it('counts rarity and condition as filters but not set, edition or sort', () => {
     expect(hasActiveFilters(parse({ rarity: 'Rare' }))).toBe(true);
     expect(hasActiveFilters(parse({ set: 'base-set', condition: 'sp' }))).toBe(true);
     expect(hasActiveFilters(parse({ set: 'base-set', edition: 'shadowless', sort: 'cheapest' }))).toBe(false);
   });
-  it('clears filters but keeps set, edition and sort', () => {
+  it('clears filters and edition but keeps set and sort', () => {
     const p = parse({ set: 'base-set', edition: 'shadowless', sort: 'cheapest', rarity: 'Rare', condition: 'sp', q: 'x' });
-    expect(clearFiltersHref(p)).toBe('?tab=deals&set=base-set&edition=shadowless&sort=cheapest');
+    expect(clearFiltersHref(p)).toBe('?tab=deals&set=base-set&sort=cheapest');
   });
 });

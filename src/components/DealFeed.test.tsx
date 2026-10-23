@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DealFeed } from './DealFeed';
+import type { SortKey } from '@/deals/sections';
 import type { DealView } from '@/deals/feed';
 
 const NOW = new Date('2026-10-19T12:00:00Z');
@@ -52,6 +53,20 @@ describe('DealFeed', () => {
     b.unmount();
     render(<DealFeed deals={[deal()]} now={NOW} lastCheckedAt={NOW} filter={f(false)} />);
     expect(screen.queryByText(/match(es)? your filters/)).not.toBeInTheDocument();
+  });
+  it('labels the list with the chosen sort and shows the hero only for the default sorts', () => {
+    const labels: [SortKey | null, string, boolean][] = [
+      [null, 'biggest € saving', true], ['saving', 'biggest € saving', true],
+      ['cheapest', 'cheapest first', false], ['expensive', 'most expensive first', false],
+    ];
+    for (const [sort, label, hero] of labels) {
+      const { unmount } = render(<DealFeed deals={[deal(), sneasel]} now={NOW} lastCheckedAt={NOW} sort={sort} />);
+      expect(screen.getByText(`Sorted by: ${label}`)).toBeInTheDocument();
+      expect(screen.queryByText('Best deal right now') !== null).toBe(hero);
+      // Without the hero both deals are plain tiles.
+      expect(screen.queryAllByRole('heading', { level: 3 })).toHaveLength(hero ? 1 : 2);
+      unmount();
+    }
   });
   it('shows only the hero when there is one deal', () => {
     render(<DealFeed deals={[deal()]} now={NOW} lastCheckedAt={NOW} />);

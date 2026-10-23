@@ -5,7 +5,9 @@ import { dashboardHref, type DashboardParams } from '@/lib/params';
 // Under SectionTabs for vintage sets. Singles and sealed default to Unlimited; on Deals no edition means all of them.
 export function EditionTabs({ params, set }: { params: DashboardParams; set: TrackedSet }) {
   const active: Edition | null = params.edition ?? (params.tab === 'deals' ? null : 'unlimited');
-  const tabs: { edition: Edition; label: string }[] = [
+  const deals = params.tab === 'deals';
+  const tabs: { edition: Edition | null; label: string }[] = [
+    ...(deals ? [{ edition: null, label: 'All editions' }] : []),
     ...(set.hasFirstEdition ? [{ edition: 'first_edition' as const, label: '1st Edition' }] : []),
     ...(set.shadowlessExpansionId ? [{ edition: 'shadowless' as const, label: 'Shadowless' }] : []),
     { edition: 'unlimited', label: 'Unlimited' },
@@ -14,7 +16,7 @@ export function EditionTabs({ params, set }: { params: DashboardParams; set: Tra
     <nav aria-label="Edition" className="mb-3 flex flex-wrap gap-2">
       {tabs.map(({ edition, label }) => (
         <a
-          key={edition}
+          key={edition ?? 'all'}
           href={dashboardHref(params, { edition })}
           aria-current={active === edition ? 'page' : undefined}
           className={`flex min-h-11 items-center rounded-full border px-3.5 text-xs ${

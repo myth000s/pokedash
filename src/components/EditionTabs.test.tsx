@@ -27,9 +27,20 @@ describe('EditionTabs', () => {
     expect(screen.getByRole('link', { name: 'Shadowless' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Unlimited' })).not.toHaveAttribute('aria-current');
   });
-  it('marks none as current on Deals without an edition filter', () => {
-    render(<EditionTabs params={parseDashboardParams({ set: 'base-set' })} set={BASE_SET} />);
-    for (const a of screen.getAllByRole('link')) expect(a).not.toHaveAttribute('aria-current');
+  it('offers All editions on Deals only, current when no edition is chosen', () => {
+    const a = render(<EditionTabs params={parseDashboardParams({ set: 'base-set' })} set={BASE_SET} />);
+    expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual(['All editions', '1st Edition', 'Shadowless', 'Unlimited']);
+    expect(screen.getByRole('link', { name: 'All editions' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'All editions' })).toHaveAttribute('href', '?tab=deals&set=base-set');
+    expect(screen.getByRole('link', { name: 'Unlimited' })).not.toHaveAttribute('aria-current');
+    a.unmount();
+    render(<EditionTabs params={parseDashboardParams({ set: 'base-set', edition: 'shadowless' })} set={BASE_SET} />);
+    expect(screen.getByRole('link', { name: 'All editions' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'Shadowless' })).toHaveAttribute('aria-current', 'page');
+  });
+  it('has no All editions link on Singles', () => {
+    render(<EditionTabs params={parseDashboardParams({ tab: 'singles', set: 'base-set' })} set={BASE_SET} />);
+    expect(screen.queryByRole('link', { name: 'All editions' })).toBeNull();
   });
   it('keeps q and set in the hrefs', () => {
     render(<EditionTabs params={parseDashboardParams({ tab: 'singles', set: 'base-set', q: 'char' })} set={BASE_SET} />);

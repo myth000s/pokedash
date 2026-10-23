@@ -25,6 +25,7 @@ const MAX_Q = 100;
 const MAX_EUROS = 100000;
 const MAX_RARITY = 60;
 const MAX_RARITIES = 20;
+const MAX_RARITY_INPUT = 100;
 const EDITIONS: Edition[] = ['first_edition', 'shadowless', 'unlimited'];
 const CONDITIONS: ConditionGroup[] = ['nm', 'sp', 'mp'];
 const SORTS: SortKey[] = ['saving', 'cheapest', 'expensive'];
@@ -60,7 +61,7 @@ export function parseDashboardParams(sp: Record<string, string | string[] | unde
   const condition = CONDITIONS.find((c) => c === one(sp.condition)) ?? null;
   const sort = SORTS.find((k) => k === one(sp.sort)) ?? null;
   const rarityRaw = typeof sp.rarity === 'string' ? [sp.rarity] : sp.rarity ?? [];
-  const rarities = [...new Set(rarityRaw.map((r) => cleanText(r, MAX_RARITY)).filter((r) => r !== ''))].slice(0, MAX_RARITIES);
+  const rarities = [...new Set(rarityRaw.slice(0, MAX_RARITY_INPUT).map((r) => cleanText(r, MAX_RARITY)).filter((r) => r !== ''))].slice(0, MAX_RARITIES);
   const deals = tab === 'deals';
   return {
     tab, allSingles: sp.all === '1', sealedType, q, lang,
@@ -70,7 +71,7 @@ export function parseDashboardParams(sp: Record<string, string | string[] | unde
 }
 
 export function hasActiveFilters(p: DashboardParams): boolean {
-  return p.q !== '' || p.lang !== null || p.rarities.length > 0 || p.condition !== null || p.kind !== null || p.minPct !== null || p.maxPriceCents !== null;
+  return p.q !== '' || p.lang !== null || p.rarities.length > 0 || (p.condition !== null && p.tab !== 'sealed' && showsVintageFilters(p)) || p.kind !== null || p.minPct !== null || p.maxPriceCents !== null;
 }
 
 /** The set a tab shows: Deals with no set spans all sets (null); Singles and Sealed fall back to the first tracked set. */
@@ -85,6 +86,16 @@ export function showsVintageFilters(p: Pick<DashboardParams, 'tab' | 'set'>): bo
   return set === null || set.era === 'vintage';
 }
 
+/** The edition the effective set offers: 1st Edition and Shadowless only where they exist, none for a modern set. Deals across all sets keep any. */
+export function allowedEdition(p: Pick<DashboardParams, 'tab' | 'set' | 'edition'>): Edition | null {
+  const set = effectiveSet(p);
+  if (set === null) return p.edition;
+  if (set.era !== 'vintage') return null;
+  if (p.edition === 'first_edition') return set.hasFirstEdition ? p.edition : null;
+  if (p.edition === 'shadowless') return set.shadowlessExpansionId ? p.edition : null;
+  return p.edition;
+}
+
 export function dashboardHref(p: DashboardParams, overrides: Partial<DashboardParams> = {}): string {
   const r = { ...p, ...overrides };
   const parts = [`tab=${r.tab}`];
@@ -97,7 +108,8 @@ export function dashboardHref(p: DashboardParams, overrides: Partial<DashboardPa
     if (r.maxPriceCents) parts.push(`max=${r.maxPriceCents / 100}`);
   }
   if (showsVintageFilters(r)) {
-    if (r.edition) parts.push(`edition=${r.edition}`);
+    const edition = allowedEdition(r);
+    if (edition) parts.push(`edition=${edition}`);
     if (r.condition) parts.push(`condition=${r.condition}`);
   }
   for (const rarity of r.rarities) parts.push(`rarity=${encodeURIComponent(rarity)}`);
@@ -108,5 +120,5 @@ export function dashboardHref(p: DashboardParams, overrides: Partial<DashboardPa
 }
 
 export function clearFiltersHref(p: DashboardParams): string {
-  return dashboardHref(p, { q: '', lang: null, kind: null, minPct: null, maxPriceCents: null, rarities: [], condition: null });
+  return dashboardHref(p, { q: '', lang: null, kind: null, minPct: null, maxPriceCents: null, rarities: [], condition: null, edition: null });
 }
