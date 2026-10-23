@@ -33,7 +33,7 @@ export const RETENTION_DAYS = {
   unavailableListings: 30,
   listingPriceHistory: 90,
   usReferencePrices: 30,
-  benchmarkSnapshots: 365,
+  benchmarkSnapshots: 30,
 } as const;
 
 /** The daily run fails when the database grows past this size. */

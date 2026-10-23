@@ -1,14 +1,17 @@
 import type { DealView } from '@/deals/feed';
 import type { SortKey } from '@/deals/sections';
 import { DEFAULT_DEAL_SETTINGS } from '@/config/settings';
-import { formatAge, formatPct } from '@/lib/format';
+import { formatAge, formatCount, formatPct } from '@/lib/format';
 import { DealTile } from './DealTile';
 import { HeroDeal } from './HeroDeal';
 import { NothingMatches, ResultLine, type ResultFilter } from './FilterResult';
 
 const SORT_LABEL: Record<SortKey, string> = {
-  saving: 'biggest € saving', cheapest: 'cheapest first', expensive: 'most expensive first',
+  saving: 'biggest saving (€)', cheapest: 'cheapest first', expensive: 'most expensive first',
 };
+
+/** The feed shows at most this many deals, the top ones by the chosen sort. */
+export const MAX_SHOWN_DEALS = 150;
 
 export function DealFeed({ deals, now, lastCheckedAt, filter, sort = null }: {
   deals: DealView[]; now: Date; lastCheckedAt: Date | null; filter?: ResultFilter; sort?: SortKey | null;
@@ -31,11 +34,17 @@ export function DealFeed({ deals, now, lastCheckedAt, filter, sort = null }: {
   }
   // The hero is the biggest saving, so it only makes sense with the default order.
   const showHero = sort === null || sort === 'saving';
-  const best = showHero ? deals[0] : null;
-  const rest = showHero ? deals.slice(1) : deals;
+  const shown = deals.slice(0, MAX_SHOWN_DEALS);
+  const best = showHero ? shown[0] : null;
+  const rest = showHero ? shown.slice(1) : shown;
   return (
     <div className="flex flex-col gap-6">
       {filter?.active && <ResultLine count={deals.length} noun="deal" />}
+      {deals.length > MAX_SHOWN_DEALS && (
+        <p className="text-xs text-mute">
+          {`Showing the top ${MAX_SHOWN_DEALS} of ${formatCount(deals.length)} deals. Use the filters to narrow them down.`}
+        </p>
+      )}
       {best && <HeroDeal deal={best} now={now} />}
       {rest.length > 0 && (
         <section>

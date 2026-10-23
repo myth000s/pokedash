@@ -2,12 +2,15 @@ import type { ReactNode } from 'react';
 import { SEALED_TYPES, type SealedType, type SectionRow } from '@/deals/sections';
 import { formatEuro, formatPct, formatUsd } from '@/lib/format';
 import { splitProductName } from '@/lib/names';
-import { dashboardHref, parseDashboardParams, type DashboardParams } from '@/lib/params';
+import { dashboardHref, parseDashboardParams, showsVintageFilters, type DashboardParams } from '@/lib/params';
+import type { ConditionGroup } from '@/deals/reference';
 import { CardImage } from './CardImage';
 import { CardmarketLink } from './CardmarketLink';
 import { NothingMatches, ResultLine, type ResultFilter } from './FilterResult';
 
 const GRID = 'md:grid-cols-[44px_minmax(0,1fr)_100px_120px_150px_90px_60px]';
+
+const CONDITION_LABEL: Record<ConditionGroup, string> = { nm: 'Near Mint', sp: 'Slightly Played', mp: 'Moderately Played' };
 
 function Chip({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
   return (
@@ -134,8 +137,10 @@ export function SectionTable({ section, rows, allSingles, sealedType, params = p
   params?: DashboardParams; filter?: ResultFilter;
 }) {
   const langLabel = params.lang === 'de' ? 'DE' : params.lang === 'en' ? 'EN' : 'EN/DE';
+  // Modern sets have no condition control: their singles are always Near Mint.
+  const condition = showsVintageFilters(params) ? params.condition ?? 'nm' : 'nm';
   const heads = section === 'singles'
-    ? ['Card', 'Market value', 'US English-only', `Cheapest ${langLabel} (Near Mint)`, 'Difference', 'Offers']
+    ? ['Card', 'Market value', 'US English-only', `Cheapest ${langLabel} (${CONDITION_LABEL[condition]})`, 'Difference', 'Offers']
     : ['Product', 'Market value', 'US English-only', `Cheapest ${langLabel}`, 'Difference', 'Offers'];
   return (
     <section>

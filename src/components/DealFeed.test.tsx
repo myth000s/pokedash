@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { DealFeed } from './DealFeed';
+import { DealFeed, MAX_SHOWN_DEALS } from './DealFeed';
 import type { SortKey } from '@/deals/sections';
 import type { DealView } from '@/deals/feed';
 
@@ -82,7 +82,7 @@ describe('DealFeed', () => {
   });
   it('labels the list with the chosen sort and shows the hero only for the default sorts', () => {
     const labels: [SortKey | null, string, boolean][] = [
-      [null, 'biggest € saving', true], ['saving', 'biggest € saving', true],
+      [null, 'biggest saving (€)', true], ['saving', 'biggest saving (€)', true],
       ['cheapest', 'cheapest first', false], ['expensive', 'most expensive first', false],
     ];
     for (const [sort, label, hero] of labels) {
@@ -94,6 +94,26 @@ describe('DealFeed', () => {
       unmount();
     }
   });
+  it('shows at most the top 150 deals in the chosen order, and says how many there are', () => {
+    const many = Array.from({ length: 1234 }, (_, i) => deal({ listingId: 1000 + i, productName: `Card ${i}`, priceCents: 1000 + i }));
+    const { unmount } = render(<DealFeed deals={many} now={NOW} lastCheckedAt={NOW} sort="cheapest" />);
+    expect(MAX_SHOWN_DEALS).toBe(150);
+    expect(screen.getByText('Showing the top 150 of 1,234 deals. Use the filters to narrow them down.')).toBeInTheDocument();
+    const names = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+    expect(names).toHaveLength(150);
+    expect(names[0]).toBe('Card 0');
+    expect(names[149]).toBe('Card 149');
+    unmount();
+    // The filter result line keeps the full count.
+    render(<DealFeed deals={many.slice(0, 151)} now={NOW} lastCheckedAt={NOW} filter={{ active: true, totalBefore: 2000, clearHref: '?tab=deals' }} />);
+    expect(screen.getByText('151 deals match your filters')).toBeInTheDocument();
+    expect(screen.getByText('Showing the top 150 of 151 deals. Use the filters to narrow them down.')).toBeInTheDocument();
+  });
+  it('shows no cap line at 150 deals or fewer', () => {
+    const exactly = Array.from({ length: 150 }, (_, i) => deal({ listingId: 1000 + i, productName: `Card ${i}` }));
+    render(<DealFeed deals={exactly} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.queryByText(/Showing the top/)).not.toBeInTheDocument();
+  });
   it('shows only the hero when there is one deal', () => {
     render(<DealFeed deals={[deal()]} now={NOW} lastCheckedAt={NOW} />);
     expect(screen.queryByText('All deals')).not.toBeInTheDocument();
@@ -101,7 +121,7 @@ describe('DealFeed', () => {
   it('lists the other deals as tiles', () => {
     render(<DealFeed deals={[deal(), sneasel]} now={NOW} lastCheckedAt={NOW} />);
     expect(screen.getByText('All deals')).toBeInTheDocument();
-    expect(screen.getByText('Sorted by: biggest € saving')).toBeInTheDocument();
+    expect(screen.getByText('Sorted by: biggest saving (€)')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: 'Sneasel' })).toBeInTheDocument();
     expect(screen.getByText('EN · Near Mint · Seller PT')).toBeInTheDocument();
     expect(screen.getByText('Fury Swipes | Beat Up')).toBeInTheDocument();

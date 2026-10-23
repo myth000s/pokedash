@@ -97,6 +97,8 @@ npm run db:migrate:prod
 
 Migrations have to run as `postgres`, because the default privileges for the two roles are set for that user. When a later change needs a new migration, run it before you merge the code that depends on it.
 
+After migrating and merging a change that adds sets (such as the WOTC sets), start the `Ingest daily` workflow once by hand (Actions tab, "Run workflow"). It creates the new sets' products from the Cardmarket catalog; the 30-minute `Ingest listings` run only stores listings for products that already exist, so until then it skips the new sets' offers.
+
 ### 3. Role passwords
 
 In the Supabase SQL editor, run once each:

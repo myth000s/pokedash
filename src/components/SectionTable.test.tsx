@@ -109,6 +109,19 @@ describe('SectionTable', () => {
     expect(screen.getByRole('link', { name: 'Worth €5+' })).toHaveAttribute('href', '?tab=singles');
     expect(screen.getByText('No products in this section yet.')).toBeInTheDocument();
   });
+  it('names the chosen condition group and language in the singles header', () => {
+    const head = (q: Record<string, string>) => {
+      const { container, unmount } = render(<SectionTable section="singles" rows={[row({ kind: 'single', sealedType: null })]} allSingles={false} sealedType={null} params={parseDashboardParams({ tab: 'singles', ...q })} />);
+      const text = container.querySelector('[aria-hidden="true"]')!.textContent;
+      unmount();
+      return text;
+    };
+    expect(head({ set: 'base-set' })).toContain('Cheapest EN/DE (Near Mint)');
+    expect(head({ set: 'base-set', condition: 'sp', lang: 'de' })).toContain('Cheapest DE (Slightly Played)');
+    expect(head({ set: 'jungle', condition: 'mp', lang: 'en' })).toContain('Cheapest EN (Moderately Played)');
+    // A modern set has no condition control: always Near Mint.
+    expect(head({ set: '30th-celebration', condition: 'sp' })).toContain('Cheapest EN/DE (Near Mint)');
+  });
   it('shows one chip per sealed type', () => {
     render(<SectionTable section="sealed" rows={[]} allSingles={false} sealedType="etb" />);
     expect(screen.getByRole('link', { name: 'Elite Trainer Boxes' })).toHaveAttribute('aria-current', 'true');

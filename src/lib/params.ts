@@ -86,10 +86,13 @@ export function showsVintageFilters(p: Pick<DashboardParams, 'tab' | 'set'>): bo
   return set === null || set.era === 'vintage';
 }
 
-/** The edition the effective set offers: 1st Edition and Shadowless only where they exist, none for a modern set. Deals across all sets keep any. */
+/**
+ * The edition the effective set offers: 1st Edition and Shadowless only where they exist, none for a modern set.
+ * Deals across all sets show no edition control, so they keep none either.
+ */
 export function allowedEdition(p: Pick<DashboardParams, 'tab' | 'set' | 'edition'>): Edition | null {
   const set = effectiveSet(p);
-  if (set === null) return p.edition;
+  if (set === null) return null;
   if (set.era !== 'vintage') return null;
   if (p.edition === 'first_edition') return set.hasFirstEdition ? p.edition : null;
   if (p.edition === 'shadowless') return set.shadowlessExpansionId ? p.edition : null;

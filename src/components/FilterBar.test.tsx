@@ -72,11 +72,11 @@ describe('FilterBar', () => {
       expect(rarity.multiple).toBe(true);
       expect(within(rarity).getAllByRole('option').map((o) => o.textContent)).toEqual(rarities);
     });
-    it('defaults Singles and Sealed to Market value (empty) and Deals to Biggest saving', () => {
+    it('defaults Singles and Sealed to Market value (empty) and Deals to Biggest saving (€)', () => {
       for (const tab of ['singles', 'sealed']) {
         const { unmount } = render(<FilterBar params={p({ tab })} />);
         const sort = screen.getByLabelText('Sort by');
-        expect(within(sort).getAllByRole('option').map((o) => o.textContent)).toEqual(['Market value', 'Biggest saving', 'Cheapest first', 'Most expensive first']);
+        expect(within(sort).getAllByRole('option').map((o) => o.textContent)).toEqual(['Market value', 'Biggest saving (%)', 'Cheapest first', 'Most expensive first']);
         expect(sort).toHaveValue('');
         const form = sort.closest('form')!;
         expect(new FormData(form).get('sort')).toBe('');
@@ -84,6 +84,7 @@ describe('FilterBar', () => {
       }
       render(<FilterBar params={p()} />);
       expect(screen.getByLabelText('Sort by')).toHaveValue('saving');
+      expect(within(screen.getByLabelText('Sort by')).getAllByRole('option').map((o) => o.textContent)).toEqual(['Biggest saving (€)', 'Cheapest first', 'Most expensive first']);
       expect(within(screen.getByLabelText('Sort by')).queryByRole('option', { name: 'Market value' })).toBeNull();
     });
     it('offers All sets only on Deals, with Modern and WOTC groups', () => {
