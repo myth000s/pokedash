@@ -264,6 +264,8 @@ describe('sections', () => {
       await db.update(products).set({ rarity: 'Uncommon' }).where(eq(products.kind, 'single'));
       expect(await getAvailableRarities(db, SET.key)).toEqual(['Uncommon']);
       expect(await getAvailableRarities(db, JUNGLE.key)).toEqual([]);
+      // null spans every tracked set
+      expect(await getAvailableRarities(db, null)).toEqual(['Uncommon']);
     });
   });
 

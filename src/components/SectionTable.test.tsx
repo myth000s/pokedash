@@ -113,4 +113,17 @@ describe('SectionTable', () => {
     expect(target).toHaveTextContent('€99.00');
     expect(target).toHaveTextContent('€132.95');
   });
+  it('says Too few offers instead of a value, and shows the Cardmarket all-languages note', () => {
+    const a = render(<SectionTable section="sealed" rows={[row({ benchmark: { valueCents: null, confidence: 'high' } as SectionRow['benchmark'], cardmarketValueCents: 4200 })]} allSingles={false} sealedType={null} />);
+    expect(screen.getByText('Too few offers')).toBeInTheDocument();
+    expect(screen.getByText('Cardmarket €42.00 (all languages)')).toBeInTheDocument();
+    a.unmount();
+    render(<SectionTable section="sealed" rows={[row()]} allSingles={false} sealedType={null} />);
+    expect(screen.queryByText('Too few offers')).toBeNull();
+    expect(screen.queryByText(/all languages/)).toBeNull();
+  });
+  it('shows the rarity of a card', () => {
+    render(<SectionTable section="singles" rows={[row({ kind: 'single', sealedType: null, rarity: 'Rare Holo' })]} allSingles={false} sealedType={null} />);
+    expect(screen.getByText('Rare Holo')).toBeInTheDocument();
+  });
 });

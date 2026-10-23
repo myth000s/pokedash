@@ -15,6 +15,10 @@ describe('TopBar', () => {
     expect(screen.getByText('Set: 30th Celebration')).toBeInTheDocument();
     expect(screen.getByText('Live · checked 5 min ago')).toBeInTheDocument();
   });
+  it('says All sets when no set is chosen', () => {
+    render(<TopBar setName={null} lastCheckedAt={null} now={NOW} />);
+    expect(screen.getByText('All sets')).toBeInTheDocument();
+  });
   it('says when nothing has been checked yet', () => {
     render(<TopBar setName="30th Celebration" lastCheckedAt={null} now={NOW} />);
     expect(screen.getByText('Not checked yet')).toBeInTheDocument();

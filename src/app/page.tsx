@@ -4,14 +4,15 @@ import { requireAal2 } from '@/auth/session';
 import { getDb } from '@/db/client';
 import { getDealFeed } from '@/deals/feed';
 import { getFeedStats } from '@/deals/stats';
-import { getSectionCounts, getSectionRows } from '@/deals/sections';
+import { getAvailableRarities, getSectionCounts, getSectionRows } from '@/deals/sections';
 import { filterDeals } from '@/deals/filters';
-import { clearFiltersHref, hasActiveFilters, parseDashboardParams } from '@/lib/params';
+import { clearFiltersHref, effectiveSet, hasActiveFilters, parseDashboardParams, showsVintageFilters } from '@/lib/params';
 import { TRACKED_SETS } from '@/config/sets';
 import { DealFeed } from '@/components/DealFeed';
 import { TopBar } from '@/components/TopBar';
 import { StatsRow } from '@/components/StatsRow';
 import { SectionTabs } from '@/components/SectionTabs';
+import { EditionTabs } from '@/components/EditionTabs';
 import { FilterBar } from '@/components/FilterBar';
 import { SectionTable } from '@/components/SectionTable';
 import { FeedSkeleton } from '@/components/FeedSkeleton';
@@ -25,24 +26,41 @@ async function Feed({ searchParams }: { searchParams: PageProps<'/'>['searchPara
   const { tab, allSingles, sealedType } = params;
   const now = new Date();
   const db = getDb();
-  const set = TRACKED_SETS[0];
-  const [allDeals, stats, counts] = await Promise.all([
-    getDealFeed(db, { now }), getFeedStats(db, set.key), getSectionCounts(db, set.key, now),
+  // Deals with no set span every tracked set; Singles and Sealed need one set, so they fall back to the first.
+  const set = effectiveSet(params);
+  const sectionSet = set ?? TRACKED_SETS[0];
+  const vintageUi = showsVintageFilters(params);
+  const sectionEdition = sectionSet.era === 'vintage' ? params.edition ?? 'unlimited' : undefined;
+  const sectionCondition = sectionSet.era === 'vintage' ? params.condition ?? 'nm' : undefined;
+  const [allDeals, stats, counts, rarities] = await Promise.all([
+    getDealFeed(db, { now }),
+    getFeedStats(db, set?.key ?? null),
+    getSectionCounts(db, sectionSet.key, now, { edition: sectionEdition, conditionGroup: sectionCondition }),
+    tab === 'sealed' ? [] : getAvailableRarities(db, tab === 'deals' ? set?.key ?? null : sectionSet.key),
   ]);
-  const deals = filterDeals(allDeals, params);
+  const setDeals = set ? allDeals.filter((d) => d.setKey === set.key) : allDeals;
+  const deals = filterDeals(allDeals, {
+    ...params, edition: vintageUi ? params.edition : null, condition: vintageUi ? params.condition : null,
+  });
   const filterActive = hasActiveFilters(params);
   const clearHref = clearFiltersHref(params);
   const rows = tab === 'deals'
     ? []
-    : await getSectionRows(db, { section: tab, setKey: set.key, now, allSingles, sealedType: sealedType ?? undefined, query: params.q, language: params.lang ?? undefined });
+    : await getSectionRows(db, {
+      section: tab, setKey: sectionSet.key, now, allSingles, sealedType: sealedType ?? undefined,
+      query: params.q, language: params.lang ?? undefined,
+      edition: sectionEdition, conditionGroup: sectionCondition,
+      rarities: tab === 'singles' ? params.rarities : undefined, sort: params.sort ?? undefined,
+    });
   return (
     <>
-      <TopBar setName={set.name} lastCheckedAt={stats.lastCheckedAt} now={now} />
-      <StatsRow dealCount={allDeals.length} bestSavingCents={allDeals[0]?.score.discountCents ?? null} stats={stats} now={now} />
-      <SectionTabs active={tab} counts={{ deals: allDeals.length, ...counts }} params={params} />
-      <FilterBar params={params} />
+      <TopBar setName={set?.name ?? null} lastCheckedAt={stats.lastCheckedAt} now={now} />
+      <StatsRow dealCount={setDeals.length} bestSavingCents={setDeals[0]?.score.discountCents ?? null} stats={stats} now={now} />
+      <SectionTabs active={tab} counts={{ deals: setDeals.length, ...counts }} params={params} />
+      {set?.era === 'vintage' && <EditionTabs params={params} set={set} />}
+      <FilterBar params={params} rarities={rarities} />
       {tab === 'deals'
-        ? <DealFeed deals={deals} now={now} lastCheckedAt={stats.lastCheckedAt} filter={{ active: filterActive, totalBefore: allDeals.length, clearHref }} />
+        ? <DealFeed deals={deals} now={now} lastCheckedAt={stats.lastCheckedAt} filter={{ active: filterActive, totalBefore: setDeals.length, clearHref }} />
         : <SectionTable section={tab} rows={rows} allSingles={allSingles} sealedType={sealedType} params={params} filter={{ active: filterActive, totalBefore: counts[tab], clearHref }} />}
     </>
   );

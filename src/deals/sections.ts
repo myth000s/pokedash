@@ -42,7 +42,7 @@ async function latestSnapshots(db: Db, ids: number[]): Promise<Map<number, Snaps
 const isWorthListing = (valueCents: number | null) => (valueCents ?? 0) >= SINGLES_MIN_VALUE_CENTS;
 
 const MAX_US_AGE_MS = 7 * 24 * 3_600_000;
-const NO_RARITY = 'No rarity';
+export const NO_RARITY = 'No rarity';
 
 export interface SectionOffer {
   listingId: number; url: string; priceCents: number; language: string; sellerCountry: string | null; score: ScoredListing;
@@ -203,10 +203,11 @@ export function getSectionRows(db: Db, opts: SectionOpts & { setKey: string }): 
   return loadRows(db, [opts.setKey], opts);
 }
 
-/** The distinct single rarities of a set, sorted, with "No rarity" last when some single has none. */
-export async function getAvailableRarities(db: Db, setKey: string): Promise<string[]> {
+/** The distinct single rarities of a set (null: all tracked sets), sorted, with "No rarity" last when some single has none. */
+export async function getAvailableRarities(db: Db, setKey: string | null): Promise<string[]> {
+  const setKeys = setKey === null ? TRACKED_SETS.map((s) => s.key) : [setKey];
   const rows = await db.selectDistinct({ rarity: products.rarity }).from(products)
-    .where(and(eq(products.setKey, setKey), eq(products.kind, 'single')));
+    .where(and(inArray(products.setKey, setKeys), eq(products.kind, 'single')));
   const named = rows.flatMap((r) => (r.rarity === null ? [] : [r.rarity])).sort((a, b) => a.localeCompare(b));
   return rows.some((r) => r.rarity === null) ? [...named, NO_RARITY] : named;
 }

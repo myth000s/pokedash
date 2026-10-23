@@ -32,7 +32,6 @@ function Toolbar({ section, allSingles, sealedType, params }: {
         <>
           <Chip href={href({})} active={!allSingles}>Worth €5+</Chip>
           <Chip href={href({ allSingles: true })} active={allSingles}>All singles</Chip>
-          <span className="ml-auto">Sorted by: market value</span>
         </>
       ) : (
         <>
@@ -83,10 +82,18 @@ function Row({ row, section, langLabel }: { row: SectionRow; section: 'singles' 
       <div className="min-w-0">
         <b className="line-clamp-2 font-semibold">{title}</b>
         {sub && <span className="line-clamp-1 text-[11.5px] text-mute">{sub}</span>}
+        {row.rarity && (
+          <span className="mt-0.5 inline-block rounded-full border border-white/[0.13] px-2 py-px text-[10.5px] text-mute">{row.rarity}</span>
+        )}
       </div>
       <div id={`section-row-${row.productId}`} className="col-span-2 grid grid-cols-1 gap-1.5 md:contents">
         <Cell label="Market value">
-          <span className="font-display">{row.benchmark.valueCents !== null ? formatEuro(row.benchmark.valueCents) : '–'}</span>
+          {row.benchmark.valueCents !== null
+            ? <span className="font-display">{formatEuro(row.benchmark.valueCents)}</span>
+            : <span className="text-xs text-mute">Too few offers</span>}
+          {row.cardmarketValueCents !== null && (
+            <span className="block text-[11px] text-mute">{`Cardmarket ${formatEuro(row.cardmarketValueCents)} (all languages)`}</span>
+          )}
         </Cell>
         <Cell label="US English-only">
           {row.us ? (
