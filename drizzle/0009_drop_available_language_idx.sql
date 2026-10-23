@@ -1,0 +1,1 @@
+DROP INDEX "listings_available_language_idx";

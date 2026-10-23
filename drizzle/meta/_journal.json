@@ -64,6 +64,13 @@
       "when": 1792776704841,
       "tag": "0008_last_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792795932701,
+      "tag": "0009_drop_available_language_idx",
+      "breakpoints": true
     }
   ]
 }

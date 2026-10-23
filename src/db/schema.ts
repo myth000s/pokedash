@@ -64,8 +64,8 @@ export const listings = pgTable(
   },
   (t) => [
     unique('listings_marketplace_external_uq').on(t.marketplace, t.externalId),
+    // The dashboard queries reach listings per product (rankedOffers); no other index pays for its write cost.
     index('listings_product_id_idx').on(t.productId),
-    index('listings_available_language_idx').on(t.available, t.language),
   ],
 );
 
