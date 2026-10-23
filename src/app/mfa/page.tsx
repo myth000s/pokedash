@@ -48,7 +48,7 @@ export default function MfaPage() {
       <div className="holo-ring w-full max-w-sm">
         {/* p-6 keeps the 2px focus outline (+2px offset) of the fields inside the ring's overflow clip. */}
         <section className="relative rounded-2xl bg-[rgba(10,12,30,0.93)] p-6 sm:p-8">
-          <h1 className="w-fit bg-gradient-to-r from-holo-cyan via-holo-purple via-60% to-gold bg-clip-text font-display text-3xl tracking-wide text-transparent">
+          <h1 className="w-fit bg-gradient-to-r from-holo-cyan via-holo-purple via-60% to-holo-pink bg-clip-text font-display text-3xl tracking-wide text-transparent">
             pokedash
           </h1>
           <h2 className="mt-1 mb-2 text-lg font-semibold text-ink">Two-step login</h2>

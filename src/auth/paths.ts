@@ -1,6 +1,7 @@
 import type { SessionClaims } from './state';
 
-export const PUBLIC_PATHS = ['/login', '/impressum', '/datenschutz', '/robots.txt'];
+// /icon.svg is the browser tab icon, which the login page needs before anyone is signed in.
+export const PUBLIC_PATHS = ['/login', '/impressum', '/datenschutz', '/robots.txt', '/icon.svg'];
 
 export type ProxyDecision = { action: 'next' } | { action: 'redirect'; to: string } | { action: 'unauthorized' };
 
