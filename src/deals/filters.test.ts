@@ -11,6 +11,7 @@ const deal = (over: Partial<DealView> & { pct?: number } = {}): DealView => {
     priceCents: 9900, shippingCents: null, currency: 'EUR', lastSeenAt: NOW,
     benchmark: { valueCents: 13295, basis: 'trend', confidence: 'high', reasons: [], capturedAt: NOW },
     score: { deliveredCents: 9900, shippingKnown: false, discountCents: 3395, discountPct: pct, isDeal: true, warnings: [], notDealReasons: [] },
+    edition: 'unlimited', rarity: null, setKey: '30th-celebration', cardmarketValueCents: 13295, cardmarketProductId: 895551,
     ...rest,
   };
 };

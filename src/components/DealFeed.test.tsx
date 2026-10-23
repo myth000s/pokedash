@@ -11,6 +11,7 @@ const deal = (over: Partial<DealView> = {}): DealView => ({
   priceCents: 9900, shippingCents: null, currency: 'EUR', lastSeenAt: NOW,
   benchmark: { valueCents: 13295, basis: 'trend', confidence: 'high', reasons: [], capturedAt: new Date('2026-10-19T00:42:46Z') },
   score: { deliveredCents: 9900, shippingKnown: false, discountCents: 3395, discountPct: 0.2554, isDeal: true, warnings: ['Shipping not included'], notDealReasons: [] },
+  edition: 'unlimited', rarity: null, setKey: '30th-celebration', cardmarketValueCents: 13295, cardmarketProductId: 895551,
   ...over,
 });
 const sneasel = deal({

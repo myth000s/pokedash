@@ -1,11 +1,12 @@
 import { and, desc, eq, inArray, max } from 'drizzle-orm';
 import { benchmarkSnapshots, listings, products } from '@/db/schema';
 import type { Db } from '@/db/client';
-import { DEFAULT_DEAL_SETTINGS, type DealSettings } from '@/config/settings';
-import { assessBenchmark } from '@/scoring/benchmark';
+import { DEFAULT_DEAL_SETTINGS, dealConditionsFor, type DealSettings } from '@/config/settings';
+import { findSet } from '@/config/sets';
+import { referenceValues, type PoolListing } from '@/deals/reference';
 import { markStaleListing, scoreListing } from '@/scoring/score';
 import type {
-  BenchmarkAssessment, BenchmarkSnapshot, Condition, Marketplace, ProductKind, ScoredListing,
+  BenchmarkAssessment, BenchmarkSnapshot, Condition, Edition, Marketplace, ProductKind, ScoredListing,
 } from '@/domain/types';
 
 export interface DealView {
@@ -13,6 +14,9 @@ export interface DealView {
   condition: Condition | null; language: string | null; isReverseHolo: boolean; sellerCountry: string | null; imageUrl: string | null;
   priceCents: number; shippingCents: number | null; currency: string; lastSeenAt: Date;
   benchmark: BenchmarkAssessment; score: ScoredListing;
+  edition: Edition; rarity: string | null; setKey: string;
+  /** Cardmarket's all-language trend (trendHolo for reverse holo); shown only as a note. */
+  cardmarketValueCents: number | null; cardmarketProductId: number;
 }
 
 type SnapshotRow = typeof benchmarkSnapshots.$inferSelect;
@@ -64,18 +68,33 @@ export async function getDealFeed(
     .orderBy(benchmarkSnapshots.productId, desc(benchmarkSnapshots.capturedAt));
   const latest = new Map(snapshotRows.map((s) => [s.productId, s]));
 
+  // Sealed products have no condition; they compare as one Near Mint-like group.
+  const poolCondition = (kind: string, c: Condition | null): Condition | null => (kind === 'sealed' && c === null ? 'near_mint' : c);
+  const pool: PoolListing[] = rows.map(({ listing: l, product: p }) => ({
+    id: l.id, productId: l.productId, edition: l.edition as Edition, condition: poolCondition(p.kind, l.condition as Condition | null),
+    isReverseHolo: l.isReverseHolo, priceCents: l.priceCents, language: l.language, currency: l.currency,
+    available: l.available, lastSeenAt: l.lastSeenAt,
+  }));
+  const references = referenceValues(pool, opts.now, settings.maxListingAgeHours);
+
   const views: DealView[] = rows.map(({ listing: l, product: p }) => {
     const snap = latest.get(p.id);
     const kind = p.kind as ProductKind;
-    const benchmark = assessBenchmark(snap ? toSnapshot(snap) : emptySnapshot(opts.now), {
-      kind, reverseHolo: l.isReverseHolo, now: opts.now, maxAgeHours: settings.maxBenchmarkAgeHours,
-    });
+    const value = references.get(l.id) ?? null;
+    const benchmark: BenchmarkAssessment = {
+      valueCents: value, basis: 'en_de_offers',
+      confidence: value === null ? 'insufficient' : 'high',
+      reasons: value === null ? ['Too few EN/DE offers to compare'] : [],
+      capturedAt: opts.now,
+    };
     const condition = l.condition as Condition | null;
+    const set = findSet(p.setKey);
+    const dealSettings = set ? { ...settings, dealConditions: dealConditionsFor(set) } : settings;
     const score = markStaleListing(
       scoreListing(
         { priceCents: l.priceCents, shippingCents: l.shippingCents, currency: l.currency, condition, language: l.language, kind },
         benchmark,
-        settings,
+        dealSettings,
       ),
       l.lastSeenAt, opts.now, settings.maxListingAgeHours,
     );
@@ -84,6 +103,9 @@ export async function getDealFeed(
       condition, language: l.language, isReverseHolo: l.isReverseHolo, sellerCountry: l.sellerCountry, imageUrl: l.imageUrl,
       priceCents: l.priceCents, shippingCents: l.shippingCents, currency: l.currency, lastSeenAt: l.lastSeenAt,
       benchmark, score,
+      edition: l.edition as Edition, rarity: l.rarity, setKey: p.setKey,
+      cardmarketValueCents: snap ? (l.isReverseHolo ? snap.trendHoloCents : snap.trendCents) : null,
+      cardmarketProductId: p.cardmarketId,
     };
   });
 

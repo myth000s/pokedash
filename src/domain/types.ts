@@ -14,7 +14,7 @@ export interface PriceGuideCents {
 export interface BenchmarkSnapshot extends PriceGuideCents { capturedAt: Date }
 
 export interface BenchmarkAssessment {
-  valueCents: number | null; basis: 'trend' | 'trend_holo';
+  valueCents: number | null; basis: 'trend' | 'trend_holo' | 'en_de_offers';
   confidence: Confidence; reasons: string[]; capturedAt: Date;
 }
 

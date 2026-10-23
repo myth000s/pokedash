@@ -17,7 +17,7 @@ export function scoreListing(input: ScoreInput, benchmark: BenchmarkAssessment, 
   const discountPct = canCompare && discountCents !== null ? discountCents / valueCents : null;
 
   const notDealReasons: string[] = [];
-  if (confidence === 'insufficient') notDealReasons.push('Not enough sales data');
+  if (confidence === 'insufficient') notDealReasons.push(benchmark.reasons[0] ?? 'Not enough sales data');
   else if (confidence === 'low') notDealReasons.push('Market value is unreliable');
 
   if (input.currency !== 'EUR') notDealReasons.push('Price is not in EUR');
