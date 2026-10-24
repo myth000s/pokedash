@@ -2,11 +2,15 @@ import type { ReactNode } from 'react';
 import { SEALED_TYPES, type SealedType, type SectionRow } from '@/deals/sections';
 import { formatEuro, formatPct, formatUsd } from '@/lib/format';
 import { splitProductName } from '@/lib/names';
-import { dashboardHref, parseDashboardParams, type DashboardParams } from '@/lib/params';
+import { dashboardHref, parseDashboardParams, showsVintageFilters, type DashboardParams } from '@/lib/params';
+import type { ConditionGroup } from '@/deals/reference';
 import { CardImage } from './CardImage';
+import { CardmarketLink } from './CardmarketLink';
 import { NothingMatches, ResultLine, type ResultFilter } from './FilterResult';
 
 const GRID = 'md:grid-cols-[44px_minmax(0,1fr)_100px_120px_150px_90px_60px]';
+
+const CONDITION_LABEL: Record<ConditionGroup, string> = { nm: 'Near Mint', sp: 'Slightly Played', mp: 'Moderately Played' };
 
 function Chip({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
   return (
@@ -32,7 +36,6 @@ function Toolbar({ section, allSingles, sealedType, params }: {
         <>
           <Chip href={href({})} active={!allSingles}>Worth €5+</Chip>
           <Chip href={href({ allSingles: true })} active={allSingles}>All singles</Chip>
-          <span className="ml-auto">Sorted by: market value</span>
         </>
       ) : (
         <>
@@ -83,10 +86,18 @@ function Row({ row, section, langLabel }: { row: SectionRow; section: 'singles' 
       <div className="min-w-0">
         <b className="line-clamp-2 font-semibold">{title}</b>
         {sub && <span className="line-clamp-1 text-[11.5px] text-mute">{sub}</span>}
+        {row.rarity && (
+          <span className="mt-0.5 inline-block rounded-full border border-white/[0.13] px-2 py-px text-[10.5px] text-mute">{row.rarity}</span>
+        )}
       </div>
       <div id={`section-row-${row.productId}`} className="col-span-2 grid grid-cols-1 gap-1.5 md:contents">
         <Cell label="Market value">
-          <span className="font-display">{row.benchmark.valueCents !== null ? formatEuro(row.benchmark.valueCents) : '–'}</span>
+          {row.benchmark.valueCents !== null
+            ? <span className="font-display">{formatEuro(row.benchmark.valueCents)}</span>
+            : <span className="text-xs text-mute">Too few offers</span>}
+          {row.cardmarketValueCents !== null && (
+            <span className="block text-[11px] text-mute">{`Cardmarket ${formatEuro(row.cardmarketValueCents)} (all languages)`}</span>
+          )}
         </Cell>
         <Cell label="US English-only">
           {row.us ? (
@@ -116,6 +127,7 @@ function Row({ row, section, langLabel }: { row: SectionRow; section: 'singles' 
       ) : (
     <div className={classes}>{cells}</div>
       )}
+      <CardmarketLink productId={row.cardmarketProductId} productName={row.productName} className="mt-1 w-full md:w-auto" />
     </li>
   );
 }
@@ -125,8 +137,10 @@ export function SectionTable({ section, rows, allSingles, sealedType, params = p
   params?: DashboardParams; filter?: ResultFilter;
 }) {
   const langLabel = params.lang === 'de' ? 'DE' : params.lang === 'en' ? 'EN' : 'EN/DE';
+  // Modern sets have no condition control: their singles are always Near Mint.
+  const condition = showsVintageFilters(params) ? params.condition ?? 'nm' : 'nm';
   const heads = section === 'singles'
-    ? ['Card', 'Market value', 'US English-only', `Cheapest ${langLabel} (Near Mint)`, 'Difference', 'Offers']
+    ? ['Card', 'Market value', 'US English-only', `Cheapest ${langLabel} (${CONDITION_LABEL[condition]})`, 'Difference', 'Offers']
     : ['Product', 'Market value', 'US English-only', `Cheapest ${langLabel}`, 'Difference', 'Offers'];
   return (
     <section>

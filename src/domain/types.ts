@@ -1,6 +1,7 @@
 export type ProductKind = 'single' | 'sealed';
 export type Marketplace = 'cardtrader' | 'ebay';
 export type Condition = 'mint' | 'near_mint' | 'slightly_played' | 'moderately_played' | 'played' | 'poor';
+export type Edition = 'first_edition' | 'shadowless' | 'unlimited';
 export type Confidence = 'high' | 'medium' | 'low' | 'insufficient';
 
 export interface PriceGuideCents {
@@ -13,7 +14,7 @@ export interface PriceGuideCents {
 export interface BenchmarkSnapshot extends PriceGuideCents { capturedAt: Date }
 
 export interface BenchmarkAssessment {
-  valueCents: number | null; basis: 'trend' | 'trend_holo';
+  valueCents: number | null; basis: 'trend' | 'trend_holo' | 'en_de_offers';
   confidence: Confidence; reasons: string[]; capturedAt: Date;
 }
 
@@ -23,6 +24,7 @@ export interface NormalizedListing {
   shippingCents: number | null; condition: Condition | null; language: string | null;
   isReverseHolo: boolean; sellerCountry: string | null;
   imageUrl: string | null;
+  edition: Edition; rarity: string | null;
 }
 
 export interface ScoredListing {

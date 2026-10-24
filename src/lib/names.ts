@@ -1,4 +1,4 @@
-import type { Condition, Confidence, Marketplace } from '@/domain/types';
+import type { Condition, Confidence, Edition, Marketplace } from '@/domain/types';
 
 /** Splits "Raikou [Amazing Shot]" into a title and the text of the last [...] group. */
 export function splitProductName(name: string): { title: string; detail: string | null } {
@@ -29,4 +29,10 @@ export const CONFIDENCE_LABELS: Record<Confidence, string> = {
   medium: 'Medium confidence',
   low: 'Low confidence',
   insufficient: 'Not enough data',
+};
+
+export const EDITION_LABELS: Record<Edition, string> = {
+  first_edition: '1st Edition',
+  shadowless: 'Shadowless',
+  unlimited: 'Unlimited',
 };

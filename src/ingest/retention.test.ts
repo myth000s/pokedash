@@ -38,8 +38,8 @@ beforeEach(async () => {
     { productId: p.id, capturedAt: daysAgo(29), capturedDay: '2026-09-21', usdCents: 1 },
   ]);
   await db.insert(benchmarkSnapshots).values([
-    { productId: p.id, capturedAt: daysAgo(366) },
-    { productId: p.id, capturedAt: daysAgo(364) },
+    { productId: p.id, capturedAt: daysAgo(31) },
+    { productId: p.id, capturedAt: daysAgo(29) },
   ]);
 });
 

@@ -78,7 +78,7 @@ async function main() {
         if (isObject(raw.price) && typeof raw.price.currency === 'string') {
           currencies.set(raw.price.currency, (currencies.get(raw.price.currency) ?? 0) + 1);
         }
-        const r = normalizeCtProduct(p, byId.get(p.blueprint_id), allIds);
+        const r = normalizeCtProduct(p, byId.get(p.blueprint_id), allIds, { set: SET, expansionId: e.id });
         if ('listing' in r) normalized.count++;
         else skipReasons.set(r.skip, (skipReasons.get(r.skip) ?? 0) + 1);
       }

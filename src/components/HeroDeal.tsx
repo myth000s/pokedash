@@ -1,7 +1,9 @@
 import type { DealView } from '@/deals/feed';
 import { formatAge, formatEuro, formatPct } from '@/lib/format';
-import { CONDITION_LABELS, CONFIDENCE_LABELS, MARKETPLACE_LABELS, splitProductName } from '@/lib/names';
+import { findSet } from '@/config/sets';
+import { CONDITION_LABELS, CONFIDENCE_LABELS, EDITION_LABELS, MARKETPLACE_LABELS, splitProductName } from '@/lib/names';
 import { CardImage } from './CardImage';
+import { CardmarketLink } from './CardmarketLink';
 
 function Badge({ children, good = false }: { children: string; good?: boolean }) {
   return (
@@ -32,6 +34,7 @@ export function HeroDeal({ deal, now }: { deal: DealView; now: Date }) {
           <div className="my-3 flex flex-wrap gap-1.5">
             {deal.language && <Badge>{deal.language.toUpperCase()}</Badge>}
             {deal.condition && <Badge>{CONDITION_LABELS[deal.condition]}</Badge>}
+            {findSet(deal.setKey)?.era === 'vintage' && <Badge>{EDITION_LABELS[deal.edition]}</Badge>}
             {deal.isReverseHolo && <Badge>Reverse Holo</Badge>}
             <Badge>{marketplace}</Badge>
             {deal.sellerCountry && <Badge>{`Seller in ${deal.sellerCountry}`}</Badge>}
@@ -39,7 +42,7 @@ export function HeroDeal({ deal, now }: { deal: DealView; now: Date }) {
           </div>
           {benchmark.reasons.length > 0 && <p className="text-xs text-mute">{benchmark.reasons.join(' · ')}</p>}
           <p className="text-xs text-mute">
-            {`Market value from Cardmarket sales, updated ${formatAge(benchmark.capturedAt, now)} · listing seen ${formatAge(deal.lastSeenAt, now)}${shippingUnknown ? ' · shipping not included' : ''}`}
+            {`Market value from current EN/DE offers on CardTrader · listing seen ${formatAge(deal.lastSeenAt, now)}${shippingUnknown ? ' · shipping not included' : ''}`}
           </p>
         </div>
         <div className="flex flex-col gap-3 md:col-span-2 lg:col-span-1 lg:items-end lg:text-right">
@@ -68,6 +71,7 @@ export function HeroDeal({ deal, now }: { deal: DealView; now: Date }) {
           >
             {`View on ${marketplace}`}
           </a>
+          <CardmarketLink productId={deal.cardmarketProductId} productName={deal.productName} />
         </div>
       </div>
     </section>

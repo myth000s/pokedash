@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createCardTraderProvider } from './provider';
 import { createCardTraderClient, type CardTraderClient } from './client';
-import { THIRTIETH_CELEBRATION as SET } from '@/config/sets';
+import { THIRTIETH_CELEBRATION as SET, findSet } from '@/config/sets';
 import { ctBlueprint, ctProduct } from '../../../test/fixtures/cardtrader';
 import type { CtProduct } from './schema';
 
@@ -46,6 +46,25 @@ describe('CardTrader provider', () => {
     const client = { ...fakeClient(), expansions: vi.fn(async () => []) };
     await expect(createCardTraderProvider(client).fetchListings(SET, new Set()))
       .rejects.toThrow('No CardTrader expansion matches "30th Celebration"');
+  });
+  it('uses the exact expansion ids when a set lists them', async () => {
+    const client = fakeClient();
+    client.expansions = vi.fn(async () => [
+      { id: 1472, game_id: 5, code: 'a', name: 'Base Set' },
+      { id: 1969, game_id: 5, code: 'b', name: 'Base Set Shadowless' },
+      { id: 1478, game_id: 5, code: 'c', name: 'Base Set 2' },
+    ]);
+    client.marketplaceProducts = vi.fn(async (): Promise<Record<string, CtProduct[]>> => ({}));
+    await createCardTraderProvider(client).fetchListings(findSet('base-set')!, new Set([909509]));
+    expect((client.blueprints as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0])).toEqual([1472, 1969]);
+    expect((client.marketplaceProducts as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0])).toEqual([1472, 1472, 1969, 1969]);
+  });
+  it('fetches the expansion list once per provider', async () => {
+    const client = fakeClient();
+    const provider = createCardTraderProvider(client);
+    await provider.fetchListings(SET, new Set([909509]));
+    await provider.fetchListings(SET, new Set([909509]));
+    expect(client.expansions).toHaveBeenCalledTimes(1);
   });
   it('calls the marketplace endpoint with the bearer token', async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({}), { status: 200 }));

@@ -17,7 +17,7 @@ const chakra = Chakra_Petch({
 
 export const metadata: Metadata = {
   title: "pokedash",
-  description: "Pokémon TCG deals against Cardmarket market values",
+  description: "Pokémon TCG deals against current EN/DE market values",
   robots: { index: false, follow: false },
 };
 

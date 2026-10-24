@@ -9,13 +9,13 @@ const stats = { listingsChecked: 23638, productsTracked: 226, marketValuesAt: ne
 describe('StatsRow', () => {
   it('shows the five stats', () => {
     render(<StatsRow dealCount={5} bestSavingCents={287} stats={stats} now={NOW} />);
-    for (const [label, value] of [['Deals now', '5'], ['Best saving', '€2.87'], ['Listings checked', '23,638'], ['Products tracked', '226'], ['Market values', 'Today']]) {
+    for (const [label, value] of [['Deals now', '5'], ['Best saving', '€2.87'], ['Listings checked', '23,638'], ['Products tracked', '226'], ['Cardmarket notes', 'Today']]) {
       expect(screen.getByText(label)).toBeInTheDocument();
       expect(screen.getByText(value)).toBeInTheDocument();
     }
   });
   it('shows dashes when nothing is known yet', () => {
     render(<StatsRow dealCount={0} bestSavingCents={null} stats={{ listingsChecked: 0, productsTracked: 0, marketValuesAt: null, lastCheckedAt: null }} now={NOW} />);
-    expect(screen.getAllByText('–')).toHaveLength(2); // Best saving and Market values
+    expect(screen.getAllByText('–')).toHaveLength(2); // Best saving and Cardmarket notes
   });
 });

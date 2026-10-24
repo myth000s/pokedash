@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getSectionRows, getSectionCounts, sealedTypeOf } from './sections';
+import { getSectionRows, getSectionCounts, getAvailableRarities, sealedTypeOf, sortRows, type SectionRow } from './sections';
 import { ingestCardmarket } from '@/ingest/cardmarket';
 import { ingestListings } from '@/ingest/listings';
-import { THIRTIETH_CELEBRATION as SET } from '@/config/sets';
-import { fxRates, products, usReferencePrices } from '@/db/schema';
+import { THIRTIETH_CELEBRATION as SET, JUNGLE } from '@/config/sets';
+import { fxRates, listings, products, usReferencePrices } from '@/db/schema';
+import { getDealFeed } from './feed';
 import { eq } from 'drizzle-orm';
 import type { Db } from '@/db/client';
 import { createTestDb } from '../../test/helpers/db';
@@ -21,6 +22,15 @@ beforeEach(async () => {
 const seed = (...ls: Parameters<typeof makeListing>[0][]) =>
   ingestListings(db, fakeProvider('cardtrader', ls.map((l) => makeListing(l))), SET, NOW);
 const sealed = (opts: { sealedType?: 'etb'; query?: string; language?: 'en' | 'de' } = {}) => getSectionRows(db, { section: 'sealed', setKey: SET.key, now: NOW, ...opts });
+
+type ListingOver = Parameters<typeof makeListing>[0];
+/** A Near Mint EN offer on the Mew single (cardmarket id 909509); the id is unique per price and overrides. */
+const mewNm = (priceCents: number, over: ListingOver = {}): ListingOver => ({
+  externalId: `mew-${priceCents}-${JSON.stringify(over)}`, cardmarketProductId: 909509, condition: 'near_mint', priceCents, language: 'en', ...over,
+});
+const MEW = 909509;
+const mewRow = async (opts: { edition?: 'unlimited' | 'first_edition'; conditionGroup?: 'nm' | 'sp' | 'mp'; language?: 'en' | 'de'; now?: Date } = {}) =>
+  (await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW, allSingles: true, ...opts })).find((r) => r.cardmarketProductId === MEW)!;
 
 async function etbId(): Promise<number> {
   const [p] = await db.select().from(products).where(eq(products.name, '30th Celebration Elite Trainer Box'));
@@ -49,12 +59,66 @@ describe('sections', () => {
     const etb = (await sealed()).find((r) => r.productName === '30th Celebration Elite Trainer Box')!;
     expect(etb.offer).toMatchObject({ priceCents: 9900, language: 'en' });
     expect(etb.offerCount).toBe(2);
-    expect(etb.offer!.score.isDeal).toBe(true); // 9900 vs 13295 = 26% below
+    expect(etb.benchmark.valueCents).toBeNull(); // only 2 offers: too few to value
+  });
+  it('values sealed products from their own EN/DE offers (condition-less counts as Near Mint)', async () => {
+    await seed(
+      { externalId: 'a', priceCents: 12000, language: 'de' },
+      { externalId: 'b', priceCents: 9900, language: 'en' },
+      { externalId: 'c', priceCents: 11000, language: 'en' },
+    );
+    const etb = (await sealed()).find((r) => r.productName === '30th Celebration Elite Trainer Box')!;
+    expect(etb.benchmark).toMatchObject({ valueCents: 11000, basis: 'en_de_offers', confidence: 'high' });
+    // The offer itself has only 2 others: too few to judge it.
+    expect(etb.offer!.score).toMatchObject({ discountCents: null, isDeal: false, notDealReasons: ['Too few EN/DE offers to compare'] });
+  });
+  it('judges the shown offer against the second-cheapest other offer, like Deals', async () => {
+    await seed(
+      { externalId: 'a', priceCents: 12000, language: 'de' },
+      { externalId: 'b', priceCents: 9900, language: 'en' },
+      { externalId: 'c', priceCents: 11000, language: 'en' },
+      { externalId: 'd', priceCents: 13000, language: 'en' },
+    );
+    const etb = (await sealed()).find((r) => r.productName === '30th Celebration Elite Trainer Box')!;
+    expect(etb.benchmark.valueCents).toBe(11000);
+    // 9900 against the median of 11000, 12000 and 13000.
+    expect(etb.offer!.score).toMatchObject({ discountCents: 2100, isDeal: false });
+  });
+  it('does not call an offer a deal with exactly 3 offers (€10, €20, €21)', async () => {
+    await seed(
+      { externalId: 'a', priceCents: 1000, language: 'en' },
+      { externalId: 'b', priceCents: 2000, language: 'en' },
+      { externalId: 'c', priceCents: 2100, language: 'de' },
+    );
+    const etb = (await sealed()).find((r) => r.productName === '30th Celebration Elite Trainer Box')!;
+    expect(etb.benchmark.valueCents).toBe(2000);
+    expect(etb.offer).toMatchObject({ priceCents: 1000, score: { isDeal: false, discountPct: null } });
+  });
+  it('reports the same discount as Deals for the same listing', async () => {
+    await seed(mewNm(70000), mewNm(100000), mewNm(100000, { language: 'de' }), mewNm(105000));
+    const [deal] = await getDealFeed(db, { now: NOW });
+    const mew = await mewRow();
+    expect(mew.offer).toMatchObject({ listingId: deal.listingId, priceCents: 70000 });
+    expect(mew.offer!.score).toEqual(deal.score);
+    expect(mew.offer!.score).toMatchObject({ isDeal: true, discountCents: 30000 });
+    expect(mew.benchmark.valueCents).toBe(100000);
+  });
+  it('does not show a stale offer, however cheap, and does not count it', async () => {
+    await seed(mewNm(100000), mewNm(110000), mewNm(120000));
+    const [mew] = await db.select().from(products).where(eq(products.cardmarketId, MEW));
+    await db.insert(listings).values({
+      marketplace: 'cardtrader', externalId: 'stale', productId: mew.id, title: 'x', url: 'https://x', priceCents: 1000,
+      currency: 'EUR', condition: 'near_mint', language: 'en', firstSeenAt: NOW, lastSeenAt: new Date(NOW.getTime() - 73 * 3_600_000),
+    });
+    const row = await mewRow();
+    expect(row.offer).toMatchObject({ priceCents: 100000 });
+    expect(row.offerCount).toBe(3);
+    expect(row.benchmark.valueCents).toBe(110000);
   });
   it('lists products without an EN/DE offer', async () => {
     const rows = await sealed();
     expect(rows.map((r) => r.productName)).toEqual([
-      '30th Celebration Elite Trainer Box', '30th Celebration: Knock Out Collection', '30th Celebration Poster Collection',
+      '30th Celebration Elite Trainer Box', '30th Celebration: Knock Out Collection', '30th Celebration Poster Collection', // Cardmarket value order
     ]);
     expect(rows.every((r) => r.offer === null && r.offerCount === 0)).toBe(true);
   });
@@ -84,30 +148,39 @@ describe('sections', () => {
   it('filters sealed by type', async () => {
     expect((await sealed({ sealedType: 'etb' })).map((r) => r.sealedType)).toEqual(['etb']);
   });
-  it('shows singles worth €5+ by default, sorted by market value', async () => {
-    const ids = (await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW })).map((r) => r.productId);
+  it('shows singles worth €5+ by value from EN/DE offers, sorted by that value', async () => {
+    await seed(mewNm(100000), mewNm(120000), mewNm(130000));
+    const rows = await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].benchmark).toMatchObject({ valueCents: 120000, basis: 'en_de_offers', confidence: 'high' });
     const all = await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW, allSingles: true });
-    expect(ids).toHaveLength(2);
     expect(all).toHaveLength(4);
-    expect(all[0].benchmark.valueCents).toBe(316053);
+    expect(all[0].productId).toBe(rows[0].productId);
+    expect(all[1].benchmark).toMatchObject({ valueCents: null, confidence: 'insufficient' });
   });
-  it('only uses Near Mint or Mint offers for singles', async () => {
+  it('carries the Cardmarket trend as a note, plus rarity, edition and Cardmarket id', async () => {
+    const mew = await mewRow();
+    expect(mew.cardmarketValueCents).toBe(316053);
+    expect(mew).toMatchObject({ rarity: null, edition: 'unlimited', cardmarketProductId: MEW });
+  });
+  it('only uses Near Mint or Mint offers for singles by default', async () => {
     await seed(
-      { externalId: 's1', cardmarketProductId: 909509, condition: 'slightly_played', priceCents: 100000, language: 'en' },
-      { externalId: 's2', cardmarketProductId: 909509, condition: 'near_mint', priceCents: 250000, language: 'en' },
+      { externalId: 's1', cardmarketProductId: MEW, condition: 'slightly_played', priceCents: 100000, language: 'en' },
+      { externalId: 's2', cardmarketProductId: MEW, condition: 'near_mint', priceCents: 250000, language: 'en' },
     );
-    const mew = (await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW }))[0];
+    const mew = await mewRow();
     expect(mew.offer).toMatchObject({ priceCents: 250000 });
     expect(mew.offerCount).toBe(1);
   });
   it('skips reverse-holo offers when picking the singles offer', async () => {
     await seed(
-      { externalId: 'r1', cardmarketProductId: 909509, condition: 'near_mint', isReverseHolo: true, priceCents: 200000, language: 'en' },
-      { externalId: 'n1', cardmarketProductId: 909509, condition: 'near_mint', isReverseHolo: false, priceCents: 250000, language: 'en' },
+      { externalId: 'r1', cardmarketProductId: MEW, condition: 'near_mint', isReverseHolo: true, priceCents: 200000, language: 'en' },
+      { externalId: 'n1', cardmarketProductId: MEW, condition: 'near_mint', isReverseHolo: false, priceCents: 250000, language: 'en' },
     );
-    const mew = (await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW }))[0];
+    const mew = await mewRow();
     expect(mew.offer).toMatchObject({ priceCents: 250000 });
-    expect(mew.offerCount).toBe(2);
+    // Counts the offers the shown one is picked from: the reverse holo is not one of them.
+    expect(mew.offerCount).toBe(1);
   });
   it('ignores unavailable offers', async () => {
     await seed({ externalId: 'a', priceCents: 5000, language: 'en' }, { externalId: 'b', priceCents: 9900, language: 'en' });
@@ -145,11 +218,127 @@ describe('sections', () => {
     expect((await sealed())[0].us).toEqual({ usdCents: 12886, eurCents: 11480 });
   });
   it('counts singles worth €5+ and all sealed', async () => {
-    expect(await getSectionCounts(db, SET.key, NOW)).toEqual({ singles: 2, sealed: 3 });
+    expect(await getSectionCounts(db, SET.key, NOW)).toEqual({ singles: 0, sealed: 3 });
+    await seed(mewNm(100000), mewNm(120000), mewNm(130000));
+    expect(await getSectionCounts(db, SET.key, NOW)).toEqual({ singles: 1, sealed: 3 });
   });
-  it('getSectionCounts matches the singles rows', async () => {
-    await seed({ externalId: 's2', cardmarketProductId: 909509, condition: 'near_mint', priceCents: 250000, language: 'en' });
+  it('getSectionCounts matches the singles rows, and null counts across tracked sets', async () => {
+    await seed(mewNm(100000), mewNm(120000), mewNm(130000));
     const rows = await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW });
     expect((await getSectionCounts(db, SET.key, NOW)).singles).toBe(rows.length);
+    expect(await getSectionCounts(db, null, NOW)).toEqual({ singles: rows.length, sealed: 3 });
+  });
+
+  describe('edition, condition, rarity', () => {
+    it('values each edition from its own offers', async () => {
+      await seed(
+        mewNm(100000), mewNm(110000), mewNm(120000), mewNm(130000),
+        mewNm(900000, { edition: 'first_edition' }), mewNm(910000, { edition: 'first_edition' }), mewNm(920000, { edition: 'first_edition' }),
+      );
+      const unl = await mewRow({ edition: 'unlimited' });
+      expect(unl.benchmark.valueCents).toBe(110000);
+      expect(unl.edition).toBe('unlimited');
+      expect(unl.offer).toMatchObject({ priceCents: 100000 });
+      expect((await mewRow()).benchmark.valueCents).toBe(110000);
+      const first = await mewRow({ edition: 'first_edition' });
+      expect(first.benchmark.valueCents).toBe(910000);
+      expect(first.edition).toBe('first_edition');
+      expect(first.offer).toMatchObject({ priceCents: 900000 });
+    });
+    it('values sealed products per edition too', async () => {
+      const etb = (price: number, edition: 'unlimited' | 'first_edition') => ({ externalId: `etb-${edition}-${price}`, priceCents: price, language: 'en', edition });
+      await seed(etb(10000, 'unlimited'), etb(11000, 'unlimited'), etb(12000, 'unlimited'), etb(50000, 'first_edition'), etb(51000, 'first_edition'), etb(52000, 'first_edition'));
+      const row = async (edition?: 'first_edition') =>
+        (await getSectionRows(db, { section: 'sealed', setKey: SET.key, now: NOW, edition })).find((r) => r.productName === '30th Celebration Elite Trainer Box')!;
+      expect(await row()).toMatchObject({ edition: 'unlimited', benchmark: { valueCents: 11000 }, offer: { priceCents: 10000 } });
+      expect(await row('first_edition')).toMatchObject({ edition: 'first_edition', benchmark: { valueCents: 51000 }, offer: { priceCents: 50000 } });
+    });
+    it('counts singles for the chosen edition and condition group, matching the rows', async () => {
+      await seed(
+        mewNm(900000, { edition: 'first_edition' }), mewNm(910000, { edition: 'first_edition' }), mewNm(920000, { edition: 'first_edition' }),
+        mewNm(60000, { condition: 'slightly_played' }), mewNm(65000, { condition: 'slightly_played' }), mewNm(70000, { condition: 'slightly_played' }),
+      );
+      expect((await getSectionCounts(db, SET.key, NOW)).singles).toBe(0);
+      expect((await getSectionCounts(db, SET.key, NOW, { edition: 'first_edition' })).singles).toBe(1);
+      expect((await getSectionCounts(db, SET.key, NOW, { conditionGroup: 'sp' })).singles).toBe(1);
+      const rows = await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW, conditionGroup: 'sp' });
+      expect(rows).toHaveLength(1);
+    });
+    it('returns a null value when an edition has fewer than 3 offers', async () => {
+      await seed(mewNm(100000), mewNm(110000), mewNm(120000), mewNm(900000, { edition: 'first_edition' }), mewNm(910000, { edition: 'first_edition' }));
+      expect((await mewRow({ edition: 'first_edition' })).benchmark).toMatchObject({ valueCents: null, confidence: 'insufficient' });
+    });
+    it('values the chosen condition group from its offers only', async () => {
+      await seed(
+        mewNm(100000), mewNm(110000), mewNm(120000),
+        mewNm(60000, { condition: 'slightly_played' }), mewNm(65000, { condition: 'slightly_played' }), mewNm(70000, { condition: 'slightly_played' }),
+      );
+      const sp = await mewRow({ conditionGroup: 'sp' });
+      expect(sp.benchmark.valueCents).toBe(65000);
+      expect(sp.offer).toMatchObject({ priceCents: 60000 });
+      expect(sp.offerCount).toBe(3);
+      expect((await mewRow({ conditionGroup: 'nm' })).benchmark.valueCents).toBe(110000);
+      expect((await mewRow({ conditionGroup: 'mp' })).offer).toBeNull();
+    });
+    it('values from EN and DE together whatever the chosen language, which only picks the offer shown', async () => {
+      await seed(mewNm(100000), mewNm(110000), mewNm(120000), mewNm(50000, { language: 'de' }));
+      const all = await mewRow();
+      const en = await mewRow({ language: 'en' });
+      const de = await mewRow({ language: 'de' });
+      expect([all, en, de].map((r) => r.benchmark.valueCents)).toEqual([100000, 100000, 100000]);
+      expect([all, en, de].map((r) => [r.offer?.priceCents, r.offerCount])).toEqual([[50000, 4], [100000, 3], [50000, 1]]);
+      // The EN offer (rank 2 of the pool) is judged against the 3rd cheapest, 110000.
+      expect(en.offer!.score.discountCents).toBe(10000);
+      expect(de.offer!.score).toEqual(all.offer!.score);
+    });
+    it('ignores stale offers when valuing', async () => {
+      await seed(mewNm(100000), mewNm(110000), mewNm(120000));
+      expect((await mewRow({ now: new Date(NOW.getTime() + 80 * 3_600_000) })).benchmark.valueCents).toBeNull();
+    });
+    it('filters singles by rarity, with No rarity matching null', async () => {
+      const [mew] = await db.select().from(products).where(eq(products.cardmarketId, MEW));
+      await db.update(products).set({ rarity: 'Holo Rare' }).where(eq(products.id, mew.id));
+      const holo = await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW, allSingles: true, rarities: ['Holo Rare'] });
+      expect(holo.map((r) => r.productId)).toEqual([mew.id]);
+      expect(holo[0].rarity).toBe('Holo Rare');
+      const none = await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW, allSingles: true, rarities: ['No rarity'] });
+      expect(none).toHaveLength(3);
+      expect(none.every((r) => r.rarity === null)).toBe(true);
+      const both = await getSectionRows(db, { section: 'singles', setKey: SET.key, now: NOW, allSingles: true, rarities: ['Holo Rare', 'No rarity'] });
+      expect(both).toHaveLength(4);
+    });
+    it('lists available rarities sorted, No rarity last', async () => {
+      const singles = await db.select().from(products).where(eq(products.kind, 'single'));
+      await db.update(products).set({ rarity: 'Rare' }).where(eq(products.id, singles[0].id));
+      await db.update(products).set({ rarity: 'Common' }).where(eq(products.id, singles[1].id));
+      expect(await getAvailableRarities(db, SET.key)).toEqual(['Common', 'Rare', 'No rarity']);
+      await db.update(products).set({ rarity: 'Uncommon' }).where(eq(products.kind, 'single'));
+      expect(await getAvailableRarities(db, SET.key)).toEqual(['Uncommon']);
+      expect(await getAvailableRarities(db, JUNGLE.key)).toEqual([]);
+      // null spans every tracked set
+      expect(await getAvailableRarities(db, null)).toEqual(['Uncommon']);
+    });
+  });
+
+  describe('sortRows', () => {
+    const row = (name: string, price: number | null, value: number | null): SectionRow => ({
+      productId: 0, productName: name, kind: 'single', sealedType: null, imageUrl: null,
+      benchmark: { valueCents: value, basis: 'en_de_offers', confidence: 'high', reasons: [], capturedAt: NOW },
+      us: null, cardmarketValueCents: null, rarity: null, edition: 'unlimited', cardmarketProductId: 0, offerCount: 0,
+      offer: price === null ? null : {
+        listingId: 0, url: '', priceCents: price, language: 'en', sellerCountry: null,
+        score: {
+          deliveredCents: price, shippingKnown: false, discountCents: value === null ? null : value - price,
+          discountPct: value === null ? null : (value - price) / value, isDeal: false, warnings: [], notDealReasons: [],
+        },
+      },
+    });
+    const rows = [row('none', null, 500), row('b', 200, 1000), row('a', 300, 310), row('c', 100, null), row('d', 400, 800)];
+    const names = (sort: Parameters<typeof sortRows>[1]) => sortRows(rows, sort).map((r) => r.productName);
+    it('cheapest first, no offer last', () => expect(names('cheapest')).toEqual(['c', 'b', 'a', 'd', 'none']));
+    it('most expensive first, no offer last', () => expect(names('expensive')).toEqual(['d', 'a', 'b', 'c', 'none']));
+    it('largest saving first, no offer or value last', () => expect(names('saving')).toEqual(['b', 'd', 'a', 'c', 'none']));
+    it('defaults to market value, highest first', () => expect(names(undefined)).toEqual(['b', 'd', 'none', 'a', 'c']));
+    it('does not mutate its input', () => { const copy = [...rows]; sortRows(rows, 'cheapest'); expect(rows).toEqual(copy); });
   });
 });

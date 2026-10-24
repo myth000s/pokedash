@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { getFeedStats } from './stats';
 import { ingestCardmarket } from '@/ingest/cardmarket';
 import { ingestListings } from '@/ingest/listings';
-import { THIRTIETH_CELEBRATION as SET } from '@/config/sets';
+import { THIRTIETH_CELEBRATION as SET, JUNGLE } from '@/config/sets';
 import { listings, products } from '@/db/schema';
 import type { Db } from '@/db/client';
 import { createTestDb } from '../../test/helpers/db';
@@ -37,6 +37,22 @@ describe('getFeedStats', () => {
       priceCents: 1000, currency: 'EUR', language: 'en', firstSeenAt: NOW, lastSeenAt: NOW,
     });
     expect(await getFeedStats(db, SET.key)).toMatchObject({ listingsChecked: 0, productsTracked: 7, lastCheckedAt: null });
+  });
+  it('counts across all tracked sets for null', async () => {
+    await ingestListings(db, fakeProvider('cardtrader', [makeListing()]), SET, NOW);
+    const [p] = await db.insert(products).values({
+      cardmarketId: 2, name: 'Jungle Box', kind: 'sealed', categoryName: 'Boxes',
+      cardmarketExpansionId: 1525, setKey: JUNGLE.key, updatedAt: NOW,
+    }).returning();
+    await db.insert(listings).values({
+      marketplace: 'cardtrader', externalId: 'jungle', productId: p.id, title: 'x', url: 'https://x',
+      priceCents: 1000, currency: 'EUR', language: 'en', firstSeenAt: NOW, lastSeenAt: LATER,
+    });
+    await db.insert(products).values({
+      cardmarketId: 3, name: 'Untracked', kind: 'sealed', categoryName: 'Boxes',
+      cardmarketExpansionId: 1, setKey: 'untracked-set', updatedAt: NOW,
+    });
+    expect(await getFeedStats(db, null)).toMatchObject({ listingsChecked: 2, productsTracked: 8, lastCheckedAt: LATER });
   });
   it('returns zeros and nulls for an empty database', async () => {
     const empty = await createTestDb();

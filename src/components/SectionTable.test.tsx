@@ -15,7 +15,7 @@ function row(over: Partial<SectionRow> = {}): SectionRow {
       listingId: 1, url: 'https://www.cardtrader.com/cards/399230', priceCents: 9900, language: 'en', sellerCountry: 'DE',
       score: { discountPct: 0.2554, discountCents: 3395, isDeal: true, warnings: [] } as unknown as ScoredListing,
     },
-    offerCount: 2,
+    offerCount: 2, cardmarketValueCents: null, rarity: null, edition: 'unlimited', cardmarketProductId: 1,
     ...over,
   };
 }
@@ -78,6 +78,21 @@ describe('SectionTable', () => {
     render(<SectionTable section="singles" rows={[row({ productName: 'Mew [Psychic | 30C]', kind: 'single', sealedType: null })]} allSingles={false} sealedType={null} />);
     expect(screen.getByRole('link', { name: 'View Mew [Psychic | 30C] on CardTrader' })).toBeInTheDocument();
   });
+  it('adds a Check on Cardmarket link to every row, with or without an offer', () => {
+    render(<SectionTable section="singles" rows={[
+      row({ productId: 1, productName: 'Mew [Psychic | 30C]', kind: 'single', sealedType: null }),
+      row({ productId: 2, productName: 'Pikachu [Thunder Jolt]', kind: 'single', sealedType: null, offer: null, offerCount: 0 }),
+    ]} allSingles={false} sealedType={null} />);
+    const links = screen.getAllByRole('link', { name: /^Check on Cardmarket for / });
+    expect(links).toHaveLength(2);
+    for (const l of links) {
+      expect(l).toHaveTextContent('Check on Cardmarket');
+      expect(l).toHaveAttribute('target', '_blank');
+      expect(l).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(l.closest('a[href^="https://www.cardtrader.com"]')).toBeNull();
+    }
+    expect(new URL(links[0].getAttribute('href')!).searchParams.get('searchString')).toBe('Mew [Psychic | 30C]');
+  });
   it('shows a product without an offer', () => {
     render(<SectionTable section="sealed" rows={[row({ offer: null, offerCount: 0, us: null })]} allSingles={false} sealedType={null} />);
     expect(screen.getByText('no EN/DE offer yet')).toBeInTheDocument();
@@ -93,6 +108,19 @@ describe('SectionTable', () => {
     expect(screen.getByRole('link', { name: 'All singles' })).toHaveAttribute('aria-current', 'true');
     expect(screen.getByRole('link', { name: 'Worth €5+' })).toHaveAttribute('href', '?tab=singles');
     expect(screen.getByText('No products in this section yet.')).toBeInTheDocument();
+  });
+  it('names the chosen condition group and language in the singles header', () => {
+    const head = (q: Record<string, string>) => {
+      const { container, unmount } = render(<SectionTable section="singles" rows={[row({ kind: 'single', sealedType: null })]} allSingles={false} sealedType={null} params={parseDashboardParams({ tab: 'singles', ...q })} />);
+      const text = container.querySelector('[aria-hidden="true"]')!.textContent;
+      unmount();
+      return text;
+    };
+    expect(head({ set: 'base-set' })).toContain('Cheapest EN/DE (Near Mint)');
+    expect(head({ set: 'base-set', condition: 'sp', lang: 'de' })).toContain('Cheapest DE (Slightly Played)');
+    expect(head({ set: 'jungle', condition: 'mp', lang: 'en' })).toContain('Cheapest EN (Moderately Played)');
+    // A modern set has no condition control: always Near Mint.
+    expect(head({ set: '30th-celebration', condition: 'sp' })).toContain('Cheapest EN/DE (Near Mint)');
   });
   it('shows one chip per sealed type', () => {
     render(<SectionTable section="sealed" rows={[]} allSingles={false} sealedType="etb" />);
@@ -112,5 +140,18 @@ describe('SectionTable', () => {
     const target = document.getElementById(link.getAttribute('aria-describedby')!)!;
     expect(target).toHaveTextContent('€99.00');
     expect(target).toHaveTextContent('€132.95');
+  });
+  it('says Too few offers instead of a value, and shows the Cardmarket all-languages note', () => {
+    const a = render(<SectionTable section="sealed" rows={[row({ benchmark: { valueCents: null, confidence: 'high' } as SectionRow['benchmark'], cardmarketValueCents: 4200 })]} allSingles={false} sealedType={null} />);
+    expect(screen.getByText('Too few offers')).toBeInTheDocument();
+    expect(screen.getByText('Cardmarket €42.00 (all languages)')).toBeInTheDocument();
+    a.unmount();
+    render(<SectionTable section="sealed" rows={[row()]} allSingles={false} sealedType={null} />);
+    expect(screen.queryByText('Too few offers')).toBeNull();
+    expect(screen.queryByText(/all languages/)).toBeNull();
+  });
+  it('shows the rarity of a card', () => {
+    render(<SectionTable section="singles" rows={[row({ kind: 'single', sealedType: null, rarity: 'Rare Holo' })]} allSingles={false} sealedType={null} />);
+    expect(screen.getByText('Rare Holo')).toBeInTheDocument();
   });
 });

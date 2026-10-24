@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { DealFeed } from './DealFeed';
+import { DealFeed, MAX_SHOWN_DEALS } from './DealFeed';
+import type { SortKey } from '@/deals/sections';
 import type { DealView } from '@/deals/feed';
 
 const NOW = new Date('2026-10-19T12:00:00Z');
@@ -11,6 +12,7 @@ const deal = (over: Partial<DealView> = {}): DealView => ({
   priceCents: 9900, shippingCents: null, currency: 'EUR', lastSeenAt: NOW,
   benchmark: { valueCents: 13295, basis: 'trend', confidence: 'high', reasons: [], capturedAt: new Date('2026-10-19T00:42:46Z') },
   score: { deliveredCents: 9900, shippingKnown: false, discountCents: 3395, discountPct: 0.2554, isDeal: true, warnings: ['Shipping not included'], notDealReasons: [] },
+  edition: 'unlimited', rarity: null, setKey: '30th-celebration', cardmarketValueCents: 13295, cardmarketProductId: 895551,
   ...over,
 });
 const sneasel = deal({
@@ -29,6 +31,32 @@ describe('DealFeed', () => {
       expect(screen.getByText(t)).toBeInTheDocument();
     }
     expect(screen.getByRole('link', { name: 'View on CardTrader' })).toHaveAttribute('href', 'https://www.cardtrader.com/cards/1001');
+  });
+  it('shows an edition badge on vintage deals and none on modern ones', () => {
+    const vintage = deal({ listingId: 7, productName: 'Charizard [Fire Spin]', kind: 'single', setKey: 'base-set', edition: 'first_edition', condition: 'near_mint' });
+    const a = render(<DealFeed deals={[vintage]} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.getByText('1st Edition')).toBeInTheDocument();
+    a.unmount();
+    const tile = render(<DealFeed deals={[vintage, deal({ listingId: 9, productName: 'Blastoise [Rain Dance]', kind: 'single', setKey: 'base-set', edition: 'shadowless' })]} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.getByText('1st Edition')).toBeInTheDocument(); // hero
+    expect(screen.getByText('Shadowless')).toBeInTheDocument(); // tile
+    tile.unmount();
+    const b = render(<DealFeed deals={[deal(), deal({ listingId: 8, setKey: 'base-set', edition: 'shadowless' })]} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.getAllByText('Shadowless')).toHaveLength(1);
+    b.unmount();
+    render(<DealFeed deals={[deal(), sneasel]} now={NOW} lastCheckedAt={NOW} />);
+    for (const label of ['1st Edition', 'Shadowless', 'Unlimited']) expect(screen.queryByText(label)).not.toBeInTheDocument();
+  });
+  it('links every deal to Cardmarket in a new tab', () => {
+    render(<DealFeed deals={[deal(), sneasel]} now={NOW} lastCheckedAt={NOW} />);
+    const links = screen.getAllByRole('link', { name: /^Check on Cardmarket for / });
+    expect(links).toHaveLength(2);
+    for (const l of links) {
+      expect(l.getAttribute('href')).toMatch(/^https:\/\/www\.cardmarket\.com\/en\/Pokemon\/Products\/Search\?searchString=/);
+      expect(l).toHaveAttribute('target', '_blank');
+      expect(l).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(l).toHaveTextContent('Check on Cardmarket');
+    }
   });
   it('shows the nothing-matches panel when filters removed every deal', () => {
     render(<DealFeed deals={[]} now={NOW} lastCheckedAt={NOW} filter={{ active: true, totalBefore: 4, clearHref: '?tab=deals' }} />);
@@ -52,6 +80,40 @@ describe('DealFeed', () => {
     render(<DealFeed deals={[deal()]} now={NOW} lastCheckedAt={NOW} filter={f(false)} />);
     expect(screen.queryByText(/match(es)? your filters/)).not.toBeInTheDocument();
   });
+  it('labels the list with the chosen sort and shows the hero only for the default sorts', () => {
+    const labels: [SortKey | null, string, boolean][] = [
+      [null, 'biggest saving (€)', true], ['saving', 'biggest saving (€)', true],
+      ['cheapest', 'cheapest first', false], ['expensive', 'most expensive first', false],
+    ];
+    for (const [sort, label, hero] of labels) {
+      const { unmount } = render(<DealFeed deals={[deal(), sneasel]} now={NOW} lastCheckedAt={NOW} sort={sort} />);
+      expect(screen.getByText(`Sorted by: ${label}`)).toBeInTheDocument();
+      expect(screen.queryByText('Best deal right now') !== null).toBe(hero);
+      // Without the hero both deals are plain tiles.
+      expect(screen.queryAllByRole('heading', { level: 3 })).toHaveLength(hero ? 1 : 2);
+      unmount();
+    }
+  });
+  it('shows at most the top 150 deals in the chosen order, and says how many there are', () => {
+    const many = Array.from({ length: 1234 }, (_, i) => deal({ listingId: 1000 + i, productName: `Card ${i}`, priceCents: 1000 + i }));
+    const { unmount } = render(<DealFeed deals={many} now={NOW} lastCheckedAt={NOW} sort="cheapest" />);
+    expect(MAX_SHOWN_DEALS).toBe(150);
+    expect(screen.getByText('Showing the top 150 of 1,234 deals. Use the filters to narrow them down.')).toBeInTheDocument();
+    const names = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+    expect(names).toHaveLength(150);
+    expect(names[0]).toBe('Card 0');
+    expect(names[149]).toBe('Card 149');
+    unmount();
+    // The filter result line keeps the full count.
+    render(<DealFeed deals={many.slice(0, 151)} now={NOW} lastCheckedAt={NOW} filter={{ active: true, totalBefore: 2000, clearHref: '?tab=deals' }} />);
+    expect(screen.getByText('151 deals match your filters')).toBeInTheDocument();
+    expect(screen.getByText('Showing the top 150 of 151 deals. Use the filters to narrow them down.')).toBeInTheDocument();
+  });
+  it('shows no cap line at 150 deals or fewer', () => {
+    const exactly = Array.from({ length: 150 }, (_, i) => deal({ listingId: 1000 + i, productName: `Card ${i}` }));
+    render(<DealFeed deals={exactly} now={NOW} lastCheckedAt={NOW} />);
+    expect(screen.queryByText(/Showing the top/)).not.toBeInTheDocument();
+  });
   it('shows only the hero when there is one deal', () => {
     render(<DealFeed deals={[deal()]} now={NOW} lastCheckedAt={NOW} />);
     expect(screen.queryByText('All deals')).not.toBeInTheDocument();
@@ -59,7 +121,7 @@ describe('DealFeed', () => {
   it('lists the other deals as tiles', () => {
     render(<DealFeed deals={[deal(), sneasel]} now={NOW} lastCheckedAt={NOW} />);
     expect(screen.getByText('All deals')).toBeInTheDocument();
-    expect(screen.getByText('Sorted by: biggest € saving')).toBeInTheDocument();
+    expect(screen.getByText('Sorted by: biggest saving (€)')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: 'Sneasel' })).toBeInTheDocument();
     expect(screen.getByText('EN · Near Mint · Seller PT')).toBeInTheDocument();
     expect(screen.getByText('Fury Swipes | Beat Up')).toBeInTheDocument();

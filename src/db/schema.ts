@@ -1,4 +1,4 @@
-import { boolean, date, doublePrecision, integer, pgTable, serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { boolean, date, doublePrecision, index, integer, pgTable, serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -12,6 +12,7 @@ export const products = pgTable('products', {
   setKey: text('set_key').notNull(),
   imageUrl: text('image_url'),
   tcgplayerId: integer('tcgplayer_id'),
+  rarity: text('rarity'),
   updatedAt: ts('updated_at').notNull(),
 });
 
@@ -53,13 +54,19 @@ export const listings = pgTable(
     condition: text('condition'),
     language: text('language'),
     isReverseHolo: boolean('is_reverse_holo').notNull().default(false),
+    edition: text('edition').notNull().default('unlimited'),
+    rarity: text('rarity'),
     sellerCountry: text('seller_country'),
     imageUrl: text('image_url'),
     available: boolean('available').notNull().default(true),
     firstSeenAt: ts('first_seen_at').notNull(),
     lastSeenAt: ts('last_seen_at').notNull(),
   },
-  (t) => [unique('listings_marketplace_external_uq').on(t.marketplace, t.externalId)],
+  (t) => [
+    unique('listings_marketplace_external_uq').on(t.marketplace, t.externalId),
+    // The dashboard queries reach listings per product (rankedOffers); no other index pays for its write cost.
+    index('listings_product_id_idx').on(t.productId),
+  ],
 );
 
 export const listingPriceHistory = pgTable('listing_price_history', {

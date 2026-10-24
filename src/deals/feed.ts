@@ -1,11 +1,12 @@
-import { and, desc, eq, inArray, max } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte, max, sql } from 'drizzle-orm';
 import { benchmarkSnapshots, listings, products } from '@/db/schema';
 import type { Db } from '@/db/client';
-import { DEFAULT_DEAL_SETTINGS, type DealSettings } from '@/config/settings';
-import { assessBenchmark } from '@/scoring/benchmark';
+import { DEFAULT_DEAL_SETTINGS, dealConditionsFor, type DealSettings } from '@/config/settings';
+import { findSet } from '@/config/sets';
+import { MIN_GROUP_SIZE, rankedOffers } from '@/deals/rankedOffers';
 import { markStaleListing, scoreListing } from '@/scoring/score';
 import type {
-  BenchmarkAssessment, BenchmarkSnapshot, Condition, Marketplace, ProductKind, ScoredListing,
+  BenchmarkAssessment, BenchmarkSnapshot, Condition, Edition, Marketplace, ProductKind, ScoredListing,
 } from '@/domain/types';
 
 export interface DealView {
@@ -13,6 +14,9 @@ export interface DealView {
   condition: Condition | null; language: string | null; isReverseHolo: boolean; sellerCountry: string | null; imageUrl: string | null;
   priceCents: number; shippingCents: number | null; currency: string; lastSeenAt: Date;
   benchmark: BenchmarkAssessment; score: ScoredListing;
+  edition: Edition; rarity: string | null; setKey: string;
+  /** Cardmarket's all-language trend (trendHolo for reverse holo); shown only as a note. */
+  cardmarketValueCents: number | null; cardmarketProductId: number;
 }
 
 type SnapshotRow = typeof benchmarkSnapshots.$inferSelect;
@@ -42,57 +46,100 @@ export function byDescNullsLast(a: number | null, b: number | null): number {
   return b - a;
 }
 
+/** The deal settings for a product's set (vintage sets accept more conditions). */
+export function dealSettingsFor(settings: DealSettings, setKey: string): DealSettings {
+  const set = findSet(setKey);
+  return set ? { ...settings, dealConditions: dealConditionsFor(set) } : settings;
+}
+
+/** The benchmark for a reference value computed from current EN/DE offers; null means too few offers. */
+export function enDeBenchmark(value: number | null, now: Date): BenchmarkAssessment {
+  return {
+    valueCents: value, basis: 'en_de_offers',
+    confidence: value === null ? 'insufficient' : 'high',
+    reasons: value === null ? ['Too few EN/DE offers to compare'] : [],
+    capturedAt: now,
+  };
+}
+
+/**
+ * The current deals, biggest € saving first. The pool is ranked in SQL (rankedOffers): only the two
+ * cheapest offers of a group of 4+ can be 20% below the second-cheapest other one, and of those only
+ * the rows that pass the value and discount rules come back. `setKey` narrows it to one set.
+ */
 export async function getDealFeed(
   db: Db,
-  opts: { now: Date; settings?: DealSettings; includeNonDeals?: boolean },
+  opts: { now: Date; settings?: DealSettings; setKey?: string | null },
 ): Promise<DealView[]> {
   const settings = opts.settings ?? DEFAULT_DEAL_SETTINGS;
-
-  const rows = await db
-    .select({ listing: listings, product: products })
-    .from(listings)
-    .innerJoin(products, eq(listings.productId, products.id))
-    .where(and(eq(listings.available, true), inArray(listings.language, ['en', 'de'])));
+  const { ctes, ranked } = rankedOffers(db, {
+    now: opts.now, maxAgeHours: settings.maxListingAgeHours,
+    where: opts.setKey ? [eq(products.setKey, opts.setKey)] : [],
+  });
+  const delivered = sql`(${listings.priceCents} + coalesce(${listings.shippingCents}, 0))`;
+  const rows = await db.with(...ctes)
+    .select({
+      listingId: listings.id, marketplace: listings.marketplace, url: listings.url,
+      condition: listings.condition, language: listings.language, isReverseHolo: listings.isReverseHolo,
+      sellerCountry: listings.sellerCountry, imageUrl: listings.imageUrl,
+      priceCents: listings.priceCents, shippingCents: listings.shippingCents, currency: listings.currency,
+      lastSeenAt: listings.lastSeenAt, edition: listings.edition, rarity: listings.rarity,
+      productId: products.id, productName: products.name, kind: products.kind, setKey: products.setKey,
+      cardmarketProductId: products.cardmarketId, reference: ranked.reference,
+    })
+    .from(ranked)
+    .innerJoin(listings, eq(listings.id, ranked.id))
+    .innerJoin(products, eq(products.id, listings.productId))
+    .where(and(
+      lte(ranked.rn, 2),
+      gte(ranked.n, MIN_GROUP_SIZE),
+      // The value and discount rules of scoreListing, in the same float8 arithmetic as JavaScript.
+      gte(ranked.reference, settings.minBenchmarkCents),
+      sql`(${ranked.reference} - ${delivered})::float8 / ${ranked.reference}::float8 >= ${settings.minDiscountPct}::float8`,
+    ));
   if (rows.length === 0) return [];
 
   // Latest snapshot per product = greatest capturedAt, not the most recently inserted row.
-  const productIds = [...new Set(rows.map((r) => r.product.id))];
   const snapshotRows = await db
-    .selectDistinctOn([benchmarkSnapshots.productId])
+    .selectDistinctOn([benchmarkSnapshots.productId], {
+      productId: benchmarkSnapshots.productId, trendCents: benchmarkSnapshots.trendCents, trendHoloCents: benchmarkSnapshots.trendHoloCents,
+    })
     .from(benchmarkSnapshots)
-    .where(inArray(benchmarkSnapshots.productId, productIds))
+    .where(inArray(benchmarkSnapshots.productId, [...new Set(rows.map((r) => r.productId))]))
     .orderBy(benchmarkSnapshots.productId, desc(benchmarkSnapshots.capturedAt));
   const latest = new Map(snapshotRows.map((s) => [s.productId, s]));
 
-  const views: DealView[] = rows.map(({ listing: l, product: p }) => {
-    const snap = latest.get(p.id);
-    const kind = p.kind as ProductKind;
-    const benchmark = assessBenchmark(snap ? toSnapshot(snap) : emptySnapshot(opts.now), {
-      kind, reverseHolo: l.isReverseHolo, now: opts.now, maxAgeHours: settings.maxBenchmarkAgeHours,
-    });
-    const condition = l.condition as Condition | null;
+  const views: DealView[] = rows.map((r) => {
+    const snap = latest.get(r.productId);
+    const kind = r.kind as ProductKind;
+    const benchmark = enDeBenchmark(r.reference, opts.now);
+    const condition = r.condition as Condition | null;
     const score = markStaleListing(
       scoreListing(
-        { priceCents: l.priceCents, shippingCents: l.shippingCents, currency: l.currency, condition, language: l.language, kind },
+        { priceCents: r.priceCents, shippingCents: r.shippingCents, currency: r.currency, condition, language: r.language, kind },
         benchmark,
-        settings,
+        dealSettingsFor(settings, r.setKey),
       ),
-      l.lastSeenAt, opts.now, settings.maxListingAgeHours,
+      r.lastSeenAt, opts.now, settings.maxListingAgeHours,
     );
     return {
-      listingId: l.id, productName: p.name, kind, marketplace: l.marketplace as Marketplace, url: l.url,
-      condition, language: l.language, isReverseHolo: l.isReverseHolo, sellerCountry: l.sellerCountry, imageUrl: l.imageUrl,
-      priceCents: l.priceCents, shippingCents: l.shippingCents, currency: l.currency, lastSeenAt: l.lastSeenAt,
+      listingId: r.listingId, productName: r.productName, kind, marketplace: r.marketplace as Marketplace, url: r.url,
+      condition, language: r.language, isReverseHolo: r.isReverseHolo, sellerCountry: r.sellerCountry, imageUrl: r.imageUrl,
+      priceCents: r.priceCents, shippingCents: r.shippingCents, currency: r.currency, lastSeenAt: r.lastSeenAt,
       benchmark, score,
+      edition: r.edition as Edition, rarity: r.rarity, setKey: r.setKey,
+      cardmarketValueCents: snap ? (r.isReverseHolo ? snap.trendHoloCents : snap.trendCents) : null,
+      cardmarketProductId: r.cardmarketProductId,
     };
   });
 
   return views
-    .filter((v) => opts.includeNonDeals || v.score.isDeal)
+    .filter((v) => v.score.isDeal)
     .sort((a, b) =>
       byDescNullsLast(a.score.discountCents, b.score.discountCents)
       || byDescNullsLast(a.score.discountPct, b.score.discountPct)
-      || b.lastSeenAt.getTime() - a.lastSeenAt.getTime());
+      || b.lastSeenAt.getTime() - a.lastSeenAt.getTime()
+      || a.listingId - b.listingId);
 }
 
 export async function getLastCheckedAt(db: Db): Promise<Date | null> {

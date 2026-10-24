@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { clearFiltersHref, dashboardHref, hasActiveFilters, parseDashboardParams as parse } from './params';
+import { allowedEdition, clearFiltersHref, dashboardHref, hasActiveFilters, parseDashboardParams as parse } from './params';
 import { matchesQuery } from './search';
 
-const base = { q: '', lang: null, kind: null, minPct: null, maxPriceCents: null };
+const base = { q: '', lang: null, kind: null, minPct: null, maxPriceCents: null, set: null, edition: null, condition: null, rarities: [], sort: null };
 
 describe('parseDashboardParams', () => {
   it('reads the tab, the singles switch and the sealed type', () => {
@@ -75,5 +75,83 @@ describe('links', () => {
   it('hasActiveFilters ignores all and type', () => {
     expect(hasActiveFilters(parse({ tab: 'singles', all: '1' }))).toBe(false);
     expect(hasActiveFilters(parse({ min: '30' }))).toBe(true);
+  });
+});
+
+describe('set, edition, condition, rarity and sort params', () => {
+  it('reads repeated rarity params and encodes each one separately', () => {
+    const p = parse({ rarity: ['Illustration Rare', 'Rare & Holo'] });
+    expect(p.rarities).toEqual(['Illustration Rare', 'Rare & Holo']);
+    expect(dashboardHref(p)).toBe('?tab=deals&rarity=Illustration%20Rare&rarity=Rare%20%26%20Holo');
+  });
+  it('trims, dedupes, drops empties and caps rarity at 60 code points and 20 values', () => {
+    expect(parse({ rarity: [' Rare ', 'Rare', '', '   '] }).rarities).toEqual(['Rare']);
+    expect(parse({ rarity: 'Rare' }).rarities).toEqual(['Rare']);
+    const many = Array.from({ length: 30 }, (_, i) => `R${i}`);
+    expect(parse({ rarity: many }).rarities).toEqual(many.slice(0, 20));
+    expect(Array.from(parse({ rarity: '😀'.repeat(100) }).rarities[0])).toHaveLength(60);
+  });
+  it('knows a set key or gives null', () => {
+    expect(parse({ set: 'base-set' }).set).toBe('base-set');
+    expect(parse({ set: 'nope' }).set).toBeNull();
+    expect(parse({ set: ['base-set', 'jungle'] }).set).toBeNull();
+  });
+  it('keeps a known edition, condition and sort and drops unknown ones', () => {
+    expect(parse({ edition: 'first_edition' }).edition).toBe('first_edition');
+    expect(parse({ edition: 'second' }).edition).toBeNull();
+    expect(parse({ condition: 'sp' }).condition).toBe('sp');
+    expect(parse({ condition: 'poor' }).condition).toBeNull();
+    expect(parse({ sort: 'cheapest' }).sort).toBe('cheapest');
+    expect(parse({ sort: 'foo' }).sort).toBeNull();
+  });
+  it('keeps set, rarity and sort across tabs', () => {
+    const p = parse({ set: 'base-set', rarity: 'Rare', sort: 'expensive', condition: 'sp', edition: 'shadowless' });
+    expect(dashboardHref(p, { tab: 'singles' })).toBe('?tab=singles&set=base-set&edition=shadowless&condition=sp&rarity=Rare&sort=expensive');
+  });
+  it('drops edition and condition when the target set is modern', () => {
+    const p = parse({ set: 'base-set', edition: 'first_edition', condition: 'sp' });
+    expect(dashboardHref(p, { set: '30th-celebration' })).toBe('?tab=deals&set=30th-celebration');
+    expect(dashboardHref(p, { set: null, tab: 'singles' })).toBe('?tab=singles');
+    // All sets has no edition control, so the edition goes too; the condition stays.
+    expect(dashboardHref(p, { set: null })).toBe('?tab=deals&condition=sp');
+  });
+  it('limits the edition to those the effective set offers', () => {
+    const e = (set: string | null, edition: 'first_edition' | 'shadowless' | 'unlimited', tab: 'deals' | 'singles' = 'singles') =>
+      allowedEdition({ tab, set, edition });
+    expect(e('base-set', 'shadowless')).toBe('shadowless');
+    expect(e('jungle', 'shadowless')).toBeNull();
+    expect(e('base-set-2', 'first_edition')).toBeNull();
+    expect(e('jungle', 'first_edition')).toBe('first_edition');
+    expect(e('jungle', 'unlimited')).toBe('unlimited');
+    expect(e('30th-celebration', 'unlimited')).toBeNull();
+    expect(e(null, 'shadowless', 'deals')).toBeNull();
+    expect(allowedEdition({ tab: 'deals', set: 'jungle', edition: null })).toBeNull();
+  });
+  it('drops a hidden edition when Base Set 1st Edition switches to All sets', () => {
+    // The filter form carries the edition along as a hidden field, so the page must drop it.
+    const submitted = parse({ tab: 'deals', set: '', edition: 'first_edition' });
+    expect(submitted).toMatchObject({ set: null, edition: 'first_edition' });
+    expect(allowedEdition(submitted)).toBeNull();
+    const p = parse({ tab: 'deals', set: 'base-set', edition: 'first_edition' });
+    expect(dashboardHref(p)).toBe('?tab=deals&set=base-set&edition=first_edition');
+    expect(dashboardHref(p, { set: null })).toBe('?tab=deals');
+  });
+  it('drops an edition the target set lacks from hrefs', () => {
+    const p = parse({ tab: 'singles', set: 'base-set', edition: 'shadowless' });
+    expect(dashboardHref(p, { set: 'jungle' })).toBe('?tab=singles&set=jungle');
+    expect(dashboardHref(p, { set: 'fossil', edition: 'first_edition' })).toBe('?tab=singles&set=fossil&edition=first_edition');
+  });
+  it('ignores a condition whose control is not shown when counting filters', () => {
+    expect(hasActiveFilters(parse({ set: '30th-celebration', condition: 'sp' }))).toBe(false);
+    expect(hasActiveFilters(parse({ tab: 'sealed', set: 'jungle', condition: 'sp' }))).toBe(false);
+  });
+  it('counts rarity and condition as filters but not set, edition or sort', () => {
+    expect(hasActiveFilters(parse({ rarity: 'Rare' }))).toBe(true);
+    expect(hasActiveFilters(parse({ set: 'base-set', condition: 'sp' }))).toBe(true);
+    expect(hasActiveFilters(parse({ set: 'base-set', edition: 'shadowless', sort: 'cheapest' }))).toBe(false);
+  });
+  it('clears filters and edition but keeps set and sort', () => {
+    const p = parse({ set: 'base-set', edition: 'shadowless', sort: 'cheapest', rarity: 'Rare', condition: 'sp', q: 'x' });
+    expect(clearFiltersHref(p)).toBe('?tab=deals&set=base-set&sort=cheapest');
   });
 });
