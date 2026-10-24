@@ -47,4 +47,11 @@ describe('EditionTabs', () => {
     expect(screen.getByRole('link', { name: '1st Edition' })).toHaveAttribute('href', '?tab=singles&q=char&set=base-set&edition=first_edition');
     expect(screen.getByRole('link', { name: 'Unlimited' })).toHaveAttribute('href', '?tab=singles&q=char&set=base-set&edition=unlimited');
   });
+  it('offers every edition on Deals across all sets', () => {
+    render(<EditionTabs params={parseDashboardParams({ edition: 'shadowless', sort: 'cheapest' })} set={null} />);
+    expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual(['All editions', '1st Edition', 'Shadowless', 'Unlimited']);
+    expect(screen.getByRole('link', { name: 'Shadowless' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'All editions' })).toHaveAttribute('href', '?tab=deals&sort=cheapest');
+    expect(screen.getByRole('link', { name: '1st Edition' })).toHaveAttribute('href', '?tab=deals&edition=first_edition&sort=cheapest');
+  });
 });

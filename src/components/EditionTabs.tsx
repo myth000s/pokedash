@@ -3,14 +3,15 @@ import type { Edition } from '@/domain/types';
 import { EDITION_LABELS } from '@/lib/names';
 import { dashboardHref, type DashboardParams } from '@/lib/params';
 
-// Under SectionTabs for vintage sets. Singles and sealed default to Unlimited; on Deals no edition means all of them.
-export function EditionTabs({ params, set }: { params: DashboardParams; set: TrackedSet }) {
+// Under SectionTabs for vintage sets, and on Deals across all sets (set null), which offer every edition.
+// Singles and sealed default to Unlimited; on Deals no edition means all of them.
+export function EditionTabs({ params, set }: { params: DashboardParams; set: TrackedSet | null }) {
   const active: Edition | null = params.edition ?? (params.tab === 'deals' ? null : 'unlimited');
   const deals = params.tab === 'deals';
   const tabs: { edition: Edition | null; label: string }[] = [
     ...(deals ? [{ edition: null, label: 'All editions' }] : []),
-    ...(set.hasFirstEdition ? [{ edition: 'first_edition' as const, label: EDITION_LABELS.first_edition }] : []),
-    ...(set.shadowlessExpansionId ? [{ edition: 'shadowless' as const, label: EDITION_LABELS.shadowless }] : []),
+    ...(!set || set.hasFirstEdition ? [{ edition: 'first_edition' as const, label: EDITION_LABELS.first_edition }] : []),
+    ...(!set || set.shadowlessExpansionId ? [{ edition: 'shadowless' as const, label: EDITION_LABELS.shadowless }] : []),
     { edition: 'unlimited', label: EDITION_LABELS.unlimited },
   ];
   return (

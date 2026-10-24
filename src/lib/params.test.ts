@@ -112,8 +112,8 @@ describe('set, edition, condition, rarity and sort params', () => {
     const p = parse({ set: 'base-set', edition: 'first_edition', condition: 'sp' });
     expect(dashboardHref(p, { set: '30th-celebration' })).toBe('?tab=deals&set=30th-celebration');
     expect(dashboardHref(p, { set: null, tab: 'singles' })).toBe('?tab=singles');
-    // All sets has no edition control, so the edition goes too; the condition stays.
-    expect(dashboardHref(p, { set: null })).toBe('?tab=deals&condition=sp');
+    // Deals across all sets have edition tabs too, so the edition and condition stay.
+    expect(dashboardHref(p, { set: null })).toBe('?tab=deals&edition=first_edition&condition=sp');
   });
   it('limits the edition to those the effective set offers', () => {
     const e = (set: string | null, edition: 'first_edition' | 'shadowless' | 'unlimited', tab: 'deals' | 'singles' = 'singles') =>
@@ -124,17 +124,19 @@ describe('set, edition, condition, rarity and sort params', () => {
     expect(e('jungle', 'first_edition')).toBe('first_edition');
     expect(e('jungle', 'unlimited')).toBe('unlimited');
     expect(e('30th-celebration', 'unlimited')).toBeNull();
-    expect(e(null, 'shadowless', 'deals')).toBeNull();
+    expect(e(null, 'shadowless', 'deals')).toBe('shadowless');
+    expect(e(null, 'first_edition', 'deals')).toBe('first_edition');
     expect(allowedEdition({ tab: 'deals', set: 'jungle', edition: null })).toBeNull();
   });
-  it('drops a hidden edition when Base Set 1st Edition switches to All sets', () => {
-    // The filter form carries the edition along as a hidden field, so the page must drop it.
+  it('keeps the edition when Base Set 1st Edition switches to All sets, where its tab stays visible', () => {
     const submitted = parse({ tab: 'deals', set: '', edition: 'first_edition' });
     expect(submitted).toMatchObject({ set: null, edition: 'first_edition' });
-    expect(allowedEdition(submitted)).toBeNull();
+    expect(allowedEdition(submitted)).toBe('first_edition');
     const p = parse({ tab: 'deals', set: 'base-set', edition: 'first_edition' });
     expect(dashboardHref(p)).toBe('?tab=deals&set=base-set&edition=first_edition');
-    expect(dashboardHref(p, { set: null })).toBe('?tab=deals');
+    expect(dashboardHref(p, { set: null })).toBe('?tab=deals&edition=first_edition');
+    // Singles fall back to a modern set, which has no editions.
+    expect(dashboardHref(p, { set: null, tab: 'singles' })).toBe('?tab=singles');
   });
   it('drops an edition the target set lacks from hrefs', () => {
     const p = parse({ tab: 'singles', set: 'base-set', edition: 'shadowless' });

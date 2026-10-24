@@ -65,7 +65,7 @@ async function Feed({ searchParams }: { searchParams: PageProps<'/'>['searchPara
       <TopBar setName={set?.name ?? null} lastCheckedAt={stats.lastCheckedAt} now={now} />
       <StatsRow dealCount={setDeals.length} bestSavingCents={setDeals[0]?.score.discountCents ?? null} stats={stats} now={now} />
       <SectionTabs active={tab} counts={{ deals: setDeals.length, ...counts }} params={params} />
-      {set?.era === 'vintage' && <EditionTabs params={params} set={set} />}
+      {(set === null || set.era === 'vintage') && <EditionTabs params={params} set={set} />}
       <FilterBar params={params} rarities={rarities} />
       {tab === 'deals'
         ? <DealFeed sort={params.sort} deals={deals} now={now} lastCheckedAt={stats.lastCheckedAt} filter={{ active: filterActive, totalBefore: setDeals.length, clearHref }} />
