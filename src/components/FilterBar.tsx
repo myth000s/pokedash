@@ -13,6 +13,33 @@ function Field({ label, id, children, grow = false }: { label: string; id: strin
   );
 }
 
+// Checkboxes in a fold-out list: no Ctrl-click needed, and still no JavaScript.
+// The boxes sit inside the form even while the list is closed, so they are sent either way.
+function RarityPicker({ rarities, chosen }: { rarities: string[]; chosen: string[] }) {
+  const summary = chosen.length === 0 ? 'Any rarity' : chosen.length === 1 ? chosen[0] : `${chosen.length} rarities`;
+  return (
+    <div className="relative flex flex-col gap-1">
+      <span className={LABEL} aria-hidden="true">Rarity</span>
+      <details>
+        <summary className={`${FIELD} flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden`}>
+          <span className="sr-only">Rarity: </span>
+          <span className="max-w-[180px] truncate">{summary}</span>
+          <span aria-hidden="true" className="text-mute">▾</span>
+        </summary>
+        <fieldset className="absolute left-0 z-20 mt-1 max-h-72 min-w-[220px] overflow-y-auto rounded-[10px] border border-white/[0.13] bg-night p-1 shadow-xl">
+          <legend className="sr-only">Rarity</legend>
+          {rarities.map((r) => (
+            <label key={r} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 text-[13px] text-ink hover:bg-white/[0.06]">
+              <input type="checkbox" name="rarity" value={r} defaultChecked={chosen.includes(r)} className="size-4 accent-[var(--color-gold)]" />
+              {r}
+            </label>
+          ))}
+        </fieldset>
+      </details>
+    </div>
+  );
+}
+
 // A plain GET form to the same page: works without JavaScript, and every filter lives in the URL.
 export function FilterBar({ params, rarities = [] }: { params: DashboardParams; rarities?: string[] }) {
   const deals = params.tab === 'deals';
@@ -49,13 +76,7 @@ export function FilterBar({ params, rarities = [] }: { params: DashboardParams; 
           <option value="expensive">Most expensive first</option>
         </select>
       </Field>
-      {params.tab !== 'sealed' && (
-        <Field label="Rarity" id="f-rarity">
-          <select id="f-rarity" name="rarity" multiple size={3} defaultValue={params.rarities} className={`${FIELD} py-1`}>
-            {rarities.map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
-        </Field>
-      )}
+      {params.tab !== 'sealed' && rarities.length > 0 && <RarityPicker rarities={rarities} chosen={params.rarities} />}
       {vintage && params.tab !== 'sealed' && (
         <Field label="Condition" id="f-condition">
           <select id="f-condition" name="condition" defaultValue={params.condition ?? (deals ? '' : 'nm')} className={FIELD}>
