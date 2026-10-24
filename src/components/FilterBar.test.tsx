@@ -68,9 +68,27 @@ describe('FilterBar', () => {
       const sort = screen.getByLabelText('Sort by');
       expect(within(sort).getAllByRole('option').map((o) => o.textContent)).toContain('Cheapest first');
       expect(screen.getByLabelText('Set')).toBeInTheDocument();
-      const rarity = screen.getByLabelText('Rarity') as HTMLSelectElement;
-      expect(rarity.multiple).toBe(true);
-      expect(within(rarity).getAllByRole('option').map((o) => o.textContent)).toEqual(rarities);
+      const rarity = screen.getByRole('group', { name: 'Rarity' });
+      expect(within(rarity).getAllByRole('checkbox').map((c) => c.getAttribute('value'))).toEqual(rarities);
+      expect(within(rarity).getByLabelText('Rare Holo')).not.toBeChecked();
+    });
+    it('sends every ticked rarity with the form, and names the choice in the closed list', () => {
+      render(<FilterBar params={p({ tab: 'singles', rarity: ['Common', 'Rare Holo'] })} rarities={rarities} />);
+      const form = screen.getByRole('search');
+      expect(new FormData(form as HTMLFormElement).getAll('rarity')).toEqual(['Common', 'Rare Holo']);
+      expect(screen.getByText('2 rarities')).toBeInTheDocument();
+    });
+    it('names a single rarity, and says Any rarity when none is ticked', () => {
+      const { unmount } = render(<FilterBar params={p({ tab: 'singles', rarity: 'Common' })} rarities={rarities} />);
+      expect(screen.getByText('Common', { selector: 'summary *' })).toBeInTheDocument();
+      unmount();
+      render(<FilterBar params={p({ tab: 'singles' })} rarities={rarities} />);
+      expect(screen.getByText('Any rarity')).toBeInTheDocument();
+      expect(new FormData(screen.getByRole('search') as HTMLFormElement).getAll('rarity')).toEqual([]);
+    });
+    it('hides Rarity when the set has no rarities', () => {
+      render(<FilterBar params={p({ tab: 'singles' })} rarities={[]} />);
+      expect(screen.queryByRole('group', { name: 'Rarity' })).toBeNull();
     });
     it('defaults Singles and Sealed to Market value (empty) and Deals to Biggest saving (€)', () => {
       for (const tab of ['singles', 'sealed']) {
@@ -120,12 +138,13 @@ describe('FilterBar', () => {
       expect(screen.getByLabelText('Set')).toHaveValue('base-set');
       expect(screen.getByLabelText('Sort by')).toHaveValue('cheapest');
       expect(screen.getByLabelText('Condition')).toHaveValue('sp');
-      expect(Array.from((screen.getByLabelText('Rarity') as HTMLSelectElement).selectedOptions).map((o) => o.value)).toEqual(['Common', 'No rarity']);
+      const rarity = screen.getByRole('group', { name: 'Rarity' });
+      expect(within(rarity).getAllByRole('checkbox').filter((c) => (c as HTMLInputElement).checked).map((c) => c.getAttribute('value'))).toEqual(['Common', 'No rarity']);
       expect(hidden(container, 'edition')).toHaveAttribute('value', 'shadowless');
     });
     it('hides Rarity on sealed', () => {
       render(<FilterBar params={p({ tab: 'sealed' })} rarities={rarities} />);
-      expect(screen.queryByLabelText('Rarity')).toBeNull();
+      expect(screen.queryByRole('group', { name: 'Rarity' })).toBeNull();
     });
     it('offers Clear filters for a chosen rarity', () => {
       render(<FilterBar params={p({ rarity: 'Rare' })} rarities={rarities} />);
